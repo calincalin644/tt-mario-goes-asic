@@ -1,5 +1,5 @@
 project:
-  title: "Mario eight-level campaign"
+  title: "Mario goes ASIC"
   author: "Calin"
   discord: ""
   description: "Scrolling VGA platformer with QSPI assets, movement lookup and integrated flash progress bar"
