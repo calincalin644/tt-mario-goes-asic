@@ -1,0 +1,74 @@
+# External flash preparation
+
+From the repository root, run `make flash-image` after installing the dependencies
+listed in the README. This creates:
+
+- `build/assets.json`: logical asset addresses, sizes and SHA256 digests.
+- `build/*.bin` and corresponding `.zlib` files: individual assets.
+- `build/flash-16MiB.bin`: complete physical-address image for a dedicated flash.
+- `build/flash-16MiB.sha256`: checksum of the complete image.
+
+Use a programmer compatible with your PMOD's W25Q128 to write the complete image
+at address zero on a **dedicated 16 MiB flash**, then verify it by readback.
+A whole-chip write replaces other contents, including areas marked erased in the
+image. This export is not an in-place update for a flash shared with other games.
+Keep the current shared PMOD on its existing guarded update procedure.
+
+Enable the flash's Quad Enable bit using the procedure for its exact part,
+preserving the other status/protection bits. The ASIC does not configure QE.
+The read protocol is `0xEB`, 24-bit quad address, `0xFF` mode, four dummy clocks.
+After programming, release the programmer's bus drivers, select the design,
+supply 25.2 MHz, and pulse reset low then high. On ASIC hardware, board selection
+and programming commands depend on the specific carrier SDK.
+
+## Address mapping
+
+| Logical region | Contents |
+| --- | --- |
+| C00000–DFFFFF | Eight base pictures, 256 KiB each |
+| E00000–E000FF | Player sprites and padding |
+| 800000–93FFFF | Gameplay tables for levels 1–5 |
+| A00000–BFFFFF | Gameplay tables for levels 6–7 |
+| 500000–5FFFFF | Gameplay table for level 8 |
+
+Four logical 64 KiB blocks relocate: `82→45`, `AD→46`, `B1→47`, `5F→48`.
+The complete-image exporter applies these relocations; do not program individual
+manifest assets at their logical addresses without applying this mapping.
+Compiled gameplay pointers already refer to physical addresses.
+
+Enemy animation pictures occupy physical 256 KiB banks:
+
+- Level 6: 0, 1, 3, 5, 7, 9, 10, 12.
+- Level 7: 13, 14, 15, 24, 25, 26, 27, 28.
+- Level 8: 29, 30, 31, 57, 58, 59, 60, 61.
+
+Each picture holds 240 rows of 1,024 bytes, two four-bit palette pixels per byte,
+high nibble first, plus 16 KiB padding. Palette values are fixed in the RTL.
+The player has separate two-bit pixels, with zero transparent.
+
+Each gameplay node has eight eight-byte action records. A record contains a
+41-bit result shifted left four bits in its first six bytes, then two padding
+bytes. The result encodes next physical node address divided by 64 (bits 40:23),
+x in eight-pixel cells (22:15), feet height (14:10), picture bank (9:4), vertical
+motion/status (3:1), and horizontal movement flag (0). Only the first 11 quad
+nibbles are read. Level selection uses the eight records at physical `0x83FFC0`.
+
+## Maintenance progress protocol
+
+The host first initializes the raster with a reset transition, then holds reset
+low while keeping the pixel clock running. The ASIC releases all eight BIDIR
+outputs. Keep both PSRAM selects high. Frame a progress byte with an empty
+flash-CS-low interval (SCK stays low), then raise flash CS and send two quad
+nibbles, high nibble first, clocked on SCK rising edges. All memories remain
+deselected during the nibble transfers. Allow at least eight pixel clocks for
+each high and low SCK interval, as in the reference driver.
+
+The byte is `{operation[1:0], steps[5:0]}`. Steps 0–32 represent 0–100%; operation
+3 means error. Other operation values all render cyan progress, then green at 32.
+Error renders the whole bar red. Do not indicate completion before readback
+validation. Release every host BIDIR driver before releasing reset.
+
+The MicroPython files `levels_flash.py`, `flash_progress.py`, `levels_board.py`
+and `flash_pmod.py` are tested reference helpers for FabricFox. Their pin numbers,
+FPGA checks and board loader require adaptation for a different carrier. There
+is intentionally no workstation-specific migration uploader in this repository.
