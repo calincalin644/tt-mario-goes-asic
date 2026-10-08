@@ -45,4 +45,4 @@ async def test_vga_and_bus_release(dut):
     await ClockCycles(dut.clk, 1000)
     await FallingEdge(dut.clk)
     assert int(dut.uio_oe.value) & 0xC9 == 0xC9
-    assert int(dut.uio_out.value) & 0xC0 == 0xC0, "PSRAM must stay deselected"
+    assert int(dut.uio_out.value) & 0x40 == 0x40, "PSRAM A must stay deselected"

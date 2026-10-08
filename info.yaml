@@ -34,5 +34,5 @@ pinout:
   uio[4]: "QSPI IO2"
   uio[5]: "QSPI IO3"
   uio[6]: "PSRAM A CS, held high"
-  uio[7]: "PSRAM B CS, held high"
+  uio[7]: "Jump audio PWM (Audio PMOD isolates PSRAM B CS)"
 yaml_version: 6

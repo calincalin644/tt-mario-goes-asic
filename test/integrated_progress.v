@@ -5,7 +5,8 @@ module progress_test;
  wire [7:0] video,out,oe,pins,memory;
  assign pins=rst ? memory:host;
  tt_um_mario_levels dut(8'b0,video,pins,out,oe,1'b1,clk,rst);
- flash_model flash(rst ? out[0]:1'b1,out[3],out,oe,memory);
+ // Audio PMOD passes bits 0..6 and pulls downstream PSRAM B CS high.
+ flash_model flash(rst ? out[0]:1'b1,out[3],{1'b1,out[6:0]},oe,memory);
  integer x,y,f;reg [5:0] rgb,expected;reg [6:0] saved;
  always @(negedge clk) #1 if(!rst && oe!==0) $fatal(1,"ASIC must release all flash/PSRAM pins in maintenance");
  task nibble(input [3:0] data);

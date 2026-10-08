@@ -16,7 +16,11 @@ flash-image: assets
 images: assets
 	python3 scripts/export_images.py
 
-check: test test-motion test-progress test-enemies
+check: test test-motion test-progress test-enemies test-boot test-audio
+
+.PHONY: test-boot
+test-boot:
+	python3 test/test_mario_boot.py
 
 smoke:
 	$(MAKE) -C test
@@ -61,3 +65,8 @@ test-motion: routes
 
 test-enemies: assets
 	python3 test/test_enemy_video.py
+
+.PHONY: test-audio
+test-audio: | build
+	$(IVERILOG) -g2012 -s audio_test -o build/audio test/audio.v $(RTL)
+	vvp build/audio

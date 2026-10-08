@@ -49,12 +49,13 @@ module tt_um_mario_levels(input wire [7:0] ui_in,output wire [7:0] uo_out,
  wire left,right,jump;
  wire [3:0] level_request;
  mario_controls controls(clk,rst_n,frame,ui_in,left,right,jump,level_request);
- reg jump_previous,facing,level_load;
+ reg jump_beep,jump_previous,facing,level_load;
  reg [2:0] action;
  always @(posedge clk) begin
-  if(!rst_n) begin action<=0;jump_previous<=0;facing<=1;level_load<=0;end
+  if(!rst_n) begin action<=0;jump_beep<=0;jump_previous<=0;facing<=1;level_load<=0;end
   else if(frame && frame_phase==3) begin
-   action<=level_request[3] ? level_request[2:0]:{jump && !jump_previous,right,left};
+   jump_beep<=jump && !jump_previous;
+   action<=level_request[3] ? level_request[2:0]:{jump,right,left};
    level_load<=level_request[3];jump_previous<=jump;
    if(left!=right) facing<=right;
   end
@@ -82,10 +83,11 @@ module tt_um_mario_levels(input wire [7:0] ui_in,output wire [7:0] uo_out,
  wire [9:0] next_v=v==524 ? 10'd0:v+1'b1;
  wire [3:0] sprite_line=next_v[4:1]-{draw_y[2:0],1'b0};
  wire game_slot=v==480 && frame_phase==0 && ena;
+ wire [7:0] flash_pins;
  wire [31:0] sprite;
  wire [3:0] background;
  mario_stream_flash flash(clk,rst_n,h,game_slot,action,level_load,
-  {player[9:4],next_v[8:1],camera}, {px[0],sprite_line},uio_in,uio_out,uio_oe,
+  {player[9:4],next_v[8:1],camera}, {px[0],sprite_line},uio_in,flash_pins,uio_oe,
   player,sprite,background);
  // All coordinate calculations precede pixel lookup by one clock.
  reg [8:0] sx;
@@ -134,6 +136,14 @@ module tt_um_mario_levels(input wire [7:0] ui_in,output wire [7:0] uo_out,
   if(raster_reset) video<=8'h88;
   else video<={hs_d,rgb[0],rgb[2],rgb[4],vs_d,rgb[1],rgb[3],rgb[5]};
  end
+ // Reuse raster bits: 787.5 kHz PWM, approximately 984 Hz jump tone.
+ // v[4] restarts each frame; no additional counters or flip-flops.
+ // jump_beep holds the initial press for four frames; action permits auto-jump.
+ // DIP loads must stay silent.
+ wire pwm_tone=(!h[4] && !h[3]) || (v[4] && (!h[4] || !h[3]));
+ wire audio=rst_n && jump_beep && !level_load ? pwm_tone:!h[4];
+ // Audio PMOD intercepts UIO7 and pulls the downstream PSRAM select high.
+ assign uio_out={audio,flash_pins[6:0]};
  assign uo_out=video;
  wire unused=&{1'b0,ui_in[7]};
 endmodule

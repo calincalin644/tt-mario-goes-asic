@@ -19,7 +19,12 @@ position, picture bank and motion/status information. The compiler resolves
 physics, collisions, checkpoints and enemies offline. PSRAM is not used.
 
 The design requests one tile. The measured mapped SKY130 cell area is
-9,634.24 µm²; physical fit and timing require the shuttle's GDS/precheck results.
+9,656.76 µm²; physical fit and timing require the shuttle's GDS/precheck results.
+
+Mountains and background masonry fit within dry-land spans rather than crossing
+water gaps. Trees and the finish gate also have dry foundations. These decorations
+are baked into the base and enemy-animation pictures; collision geometry,
+platforms and water-gap positions are independent of the decorative outlines.
 
 ## How to test
 
@@ -29,10 +34,11 @@ Select this project, supply a 25.2 MHz clock, assert reset low and release it hi
 The host must release all BIDIR drivers before releasing reset.
 
 Connect VGA to OUTPUT, the compatible serial gamepad PMOD to INPUT connector 1,
-and the flash/PSRAM PMOD to BIDIR. Keep DIP 4, 5 and 6 OFF so they do not interfere
-with gamepad signals. D-pad left/right moves; A or B jumps. Release jump between
-jumps. After death, release and press jump to return to the checkpoint. Reaching
-a flag advances to the next level; jumping after the final victory restarts.
+and stack BIDIR → Audio PMOD → flash/PSRAM PMOD. Keep DIP 4, 5 and 6 OFF
+so they do not interfere with gamepad signals. D-pad left/right moves; A or B
+jumps. Holding jump jumps again after landing and restarts at the checkpoint
+after death. It does not permit mid-air jumps. Reaching a flag advances to the
+next level; jumping after the final victory restarts.
 
 DIP 0–2 select a level, with DIP 0 as the least significant bit. Turn DIP 3 ON,
 wait for the selected level to appear, then turn DIP 3 OFF to play. Holding DIP 3
@@ -56,7 +62,9 @@ are defeated with one stomp and have no shell mechanic. Shields are not present.
 The ASIC also displays a 32-step progress bar while reset is held low and a host
 owns the flash bus. A low-high reset transition first initializes the raster.
 The host must supply progress packets; flash reads/writes do not update the bar
-automatically. Cyan means progress, green completion and red an error. During
+automatically. The reference updater restarts the bar for each asset and stage;
+it does not display overall update progress. Cyan means progress, green completion
+and red an error. During
 maintenance all ASIC BIDIR outputs are high impedance. Ordinary flash SPI traffic
 cannot change the bar. See `docs/flash.md` for the packet format.
 
@@ -68,9 +76,30 @@ cannot change the bar. See `docs/flash.md` for the packet format.
 - Flash/PSRAM PMOD with a 16 MiB W25Q128-compatible NOR flash. Quad Enable must be
   configured externally. The ASIC reads with opcode `0xEB`, 24-bit quad address,
   `0xFF` mode byte and four dummy clocks; it does not initialize or program flash.
+- Tiny Tapeout Audio PMOD on BIDIR, with the flash PMOD in its passthrough.
 - Stable 25.2 MHz clock and normal Tiny Tapeout reset/enable support.
 
 BIDIR wiring: UIO0 = flash CS#, UIO1 = IO0, UIO2 = IO1, UIO3 = SCK,
-UIO4 = IO2, UIO5 = IO3, UIO6/7 = PSRAM chip selects (held high during play).
+UIO4 = IO2, UIO5 = IO3, UIO6 = PSRAM A CS# (held high), UIO7 = jump audio PWM.
+The Audio PMOD intercepts UIO7 and pulls its downstream pin 7 high, keeping
+PSRAM B deselected. Without it, isolate flash-PMOD pin 7 and pull it high; do
+not connect the PWM directly to the PSRAM select.
 The six-bit VGA output uses UO0/1/2 = R1/G1/B1, UO4/5/6 = R0/G0/B0,
 UO3 = VSYNC and UO7 = HSYNC. Sync pulses are active low.
+
+## Jump audio
+
+A new jump-button press produces a roughly 984 Hz beep for four video frames
+(66.7 ms). Holding jump does not repeat it. It signals the button action, including
+an attempted mid-air jump or restart, rather than a confirmed physics transition.
+DIP level loading stays silent. No sound assets or flash changes are required.
+
+The existing horizontal counter produces 787.5 kHz PWM: 50% while silent,
+25%/75% for the tone. Vertical counter bit 4 supplies the pitch; its frame reset
+adds 60 Hz modulation. There is no separate oscillator or duration counter.
+One beep latch keeps the initial-press sound separate from the held jump action;
+the complete design has 209 flip-flops.
+Reset releases the audio pin along with the flash bus.
+
+Use the [Tiny Tapeout Audio PMOD](https://github.com/MichaelBell/tt-audio-pmod)
+on BIDIR, with the QSPI PMOD in its passthrough connector.

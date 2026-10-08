@@ -5,7 +5,8 @@ module motion_test;
  reg rst=0,ena=1;
  wire [7:0] video,out,oe,pins;
  tt_um_mario_levels dut(8'b0,video,pins,out,oe,ena,clk,rst);
- flash_model flash(out[0],out[3],out,oe,pins);
+ // Audio PMOD passes bits 0..6 and pulls downstream PSRAM B CS high.
+ flash_model flash(out[0],out[3],{1'b1,out[6:0]},oe,pins);
  reg [43:0] route[0:`ROUTE_COUNT-1];
  integer i,p,old_x,old_y,target_x,target_y,dx,dy,expect_x,expect_y;
  integer moving_frames=0,teleports=0;

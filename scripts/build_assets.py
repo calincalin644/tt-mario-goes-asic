@@ -54,38 +54,51 @@ def render_level(level,WORLD,graphics,output_dir=None):
                 d.point((x,y),fill=3)
             d.ellipse((left+365,24,left+390,49),fill=14)
             d.ellipse((left+357,20,left+380,44),fill=9)
-        if theme==0:
-            for cx in (0,95,230,362):
-                x=left+cx
-                d.polygon(((x,207),(x+38,144),(x+84,207)),fill=13)
-                d.polygon(((x+20,207),(x+47,168),(x+78,207)),fill=2)
-                d.line((x+38,152,x+38,164),fill=2,width=2)
-        elif theme==1:
-            for cx in range(0,512,64):
-                x=left+cx
-                d.rectangle((x,139,x+63,150),fill=10)
-                d.rectangle((x,150,x+11,207),fill=10)
-                d.rectangle((x+52,150,x+63,207),fill=10)
-                d.arc((x+11,150,x+52,186),180,360,fill=7,width=3)
-                for y in range(140,207,12):d.line((x,y,x+10,y),fill=7)
-        elif theme==2:
-            for cx in range(0,512,51):
-                x=left+cx
-                d.rectangle((x+15,129,x+21,207),fill=10)
-                d.polygon(((x-4,168),(x+18,91),(x+42,168)),fill=13)
-                d.polygon(((x,143),(x+18,75),(x+37,143)),fill=6)
-        else:
-            for cx in range(0,512,96):
-                x=left+cx
-                d.rectangle((x,115,x+95,207),fill=6)
-                d.rectangle((x+10,69,x+45,207),fill=7)
-                for bx in range(x+10,x+46,12):d.rectangle((bx,61,bx+6,72),fill=7)
-                for y in range(77,208,16):
-                    d.line((x+10,y,x+45,y),fill=10)
-                for y in (91,123,155):d.rectangle((x+23,y,x+31,y+12),fill=4)
-            d.rectangle((1828,112,1901,207),fill=10)
-            d.rectangle((1846,153,1883,207),fill=6)
-            d.arc((1846,139,1883,175),180,360,fill=7,width=3)
+        # Anchor scenery to dry land. Each object fits wholly inside one
+        # shoreline span, rather than letting a fixed repeat cross a water gap.
+        spans=[]
+        for col in range(section*64,(section+1)*64):
+            if ground(level,col)<30:
+                if spans and spans[-1][1]==col*8:
+                    spans[-1]=(spans[-1][0],(col+1)*8)
+                else:spans.append((col*8,(col+1)*8))
+        for shore_left,shore_right in spans:
+            if theme==0:
+                for x in range(shore_left+4,shore_right-19,110):
+                    width=min(84,shore_right-4-x)
+                    peak=x+width*45//100
+                    height=min(63,width*3//4)
+                    d.polygon(((x,207),(peak,207-height),(x+width-1,207)),fill=13)
+                    d.polygon(((x+width//4,207),(x+width*56//100,207-height*2//3),
+                               (x+width*92//100,207)),fill=2)
+                    if height>30:d.line((peak,215-height,peak,227-height),fill=2,width=2)
+            elif theme==1:
+                for x in range(shore_left,shore_right,64):
+                    width=min(64,shore_right-x)
+                    d.rectangle((x,139,x+width-1,150),fill=10)
+                    pier=min(12,width)
+                    d.rectangle((x,150,x+pier-1,207),fill=10)
+                    d.rectangle((x+width-pier,150,x+width-1,207),fill=10)
+                    if width>28:d.arc((x+11,150,x+width-12,186),180,360,fill=7,width=3)
+                    for y in range(140,207,12):d.line((x,y,x+pier-2,y),fill=7)
+            elif theme==2:
+                for x in range(shore_left+4,shore_right-41,51):
+                    d.rectangle((x+15,129,x+21,207),fill=10)
+                    d.polygon(((x-4,168),(x+18,91),(x+42,168)),fill=13)
+                    d.polygon(((x,143),(x+18,75),(x+37,143)),fill=6)
+            else:
+                d.rectangle((shore_left,115,shore_right-1,207),fill=6)
+                for x in range(shore_left+4,shore_right-31,96):
+                    width=min(36,shore_right-4-x)
+                    d.rectangle((x,69,x+width-1,207),fill=7)
+                    for bx in range(x,x+width-6,12):d.rectangle((bx,61,bx+6,72),fill=7)
+                    for y in range(77,208,16):d.line((x,y,x+width-1,y),fill=10)
+                    for y in (91,123,155):d.rectangle((x+width//2-4,y,x+width//2+4,y+12),fill=4)
+                # The finish gate also needs a complete dry foundation.
+                if shore_left<=1828 and shore_right>=1902:
+                    d.rectangle((1828,112,1901,207),fill=10)
+                    d.rectangle((1846,153,1883,207),fill=6)
+                    d.arc((1846,139,1883,175),180,360,fill=7,width=3)
     # Physical terrain exactly follows the offline collision description.
     for col in range(256):
         theme=WORLD["themes"][col//64];top=ground(level,col)

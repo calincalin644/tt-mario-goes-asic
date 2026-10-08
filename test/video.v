@@ -11,7 +11,8 @@ module video_test;
  reg rst=0;
  wire [7:0] video,out,oe,pins;
  tt_um_mario_levels dut(8'b0,video,pins,out,oe,1'b1,clk,rst);
- flash_model flash(out[0],out[3],out,oe,pins);
+ // Audio PMOD passes bits 0..6 and pulls downstream PSRAM B CS high.
+ flash_model flash(out[0],out[3],{1'b1,out[6:0]},oe,pins);
  integer x,y,f;reg [5:0] rgb;reg [1023:0] filename;
  initial begin
   repeat(3) @(negedge clk);rst=1;
@@ -29,7 +30,7 @@ module video_test;
     rgb={video[0],video[4],video[1],video[5],video[2],video[6]};
     if(x<640 && y<480) $fwrite(f,"%0d %0d %0d\n",rgb[5:4]*85,rgb[3:2]*85,rgb[1:0]*85);
     else if(rgb!==0) $fatal(1,"blanking");
-    if(out[7:6]!==2'b11) $fatal(1,"RAM selected");
+    if(out[6]!==1'b1) $fatal(1,"PSRAM A selected");
    end
   end
   $fclose(f);
