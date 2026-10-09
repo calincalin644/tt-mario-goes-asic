@@ -80,7 +80,7 @@ def main():
     sheet.resize((256, 128), Image.Resampling.NEAREST).save(
         output / 'sprites/mario-spritesheet-8x.png')
 
-    for kind in ('mushroom','tortoise'):
+    for kind in ('mushroom','tortoise','coin'):
         sheet=Image.new('RGBA',(64,16))
         for index,phase in enumerate((0,1,4,5)):
             sprite=enemy_sprite(kind,phase)
@@ -91,6 +91,12 @@ def main():
             sheet.paste(rgba,(index*16,0))
         sheet.save(output/'sprites'/f'{kind}-spritesheet.png')
         sheet.resize((512,128),Image.Resampling.NEAREST).save(output/'sprites'/f'{kind}-spritesheet-8x.png')
+
+    shell=enemy_sprite('tortoise_shell_upside_down',0)
+    rgba=shell.convert('RGBA')
+    rgba.putalpha(Image.frombytes('L',(16,16),bytes(0 if p==255 else 255 for p in shell.tobytes())))
+    rgba.save(output/'sprites/tortoise-shell-upside-down.png')
+    rgba.resize((128,128),Image.Resampling.NEAREST).save(output/'sprites/tortoise-shell-upside-down-8x.png')
 
     (output / 'INFO.txt').write_text(
         'Current eight-level Mario artwork, decoded from build/graphics.bin.\n'

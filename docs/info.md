@@ -12,14 +12,14 @@ precomputed gameplay transitions from flash. There is no processor, instruction
 execution, framebuffer, or on-chip level ROM. Game updates and enemy animation
 run at 15 Hz; player and camera positions interpolate at 60 Hz.
 
-Flash stores eight base images, 24 enemy-animation images, two player poses and
-reachable-state action tables: 12,845,312 bytes in total. At each update, three
+Flash stores eight base images, 26 enemy-animation images, two player poses and
+reachable-state action tables: 13,369,600 bytes in total. At each update, three
 button bits select an eight-byte record containing the next state address,
 position, picture bank and motion/status information. The compiler resolves
 physics, collisions, checkpoints and enemies offline. PSRAM is not used.
 
 The design requests one tile. The measured mapped SKY130 cell area is
-10,772.83 µm² (232 flip-flops) locally for the MIDI flash melody build. The preceding
+11,561.09 µm² (244 flip-flops) locally for the MIDI flash melody build. The preceding
 melody failed CI placement at 13,701.89 µm²; the revised RTL needs new CI validation.
 
 Mountains and background masonry fit within dry-land spans rather than crossing
@@ -109,3 +109,45 @@ with the QSPI PMOD in its passthrough; its downstream PSRAM B select must stay
 isolated from PWM. The 661-frame melody is flash-backed; new notes need asset regeneration, while
 the loop length remains a hardware constant. A different 661-frame score can
 be installed by changing flash alone; a longer loop requires new RTL.
+
+### Tortoise stomp feedback
+
+A stomp makes the tortoise harmless immediately and bounces Mario upward.
+An upside-down closed shell is shown for three gameplay updates (200 ms at
+15 Hz), then disappears. Mushrooms retain immediate disappearance. Encounter
+state resets on checkpoint-section changes and death/restart as before.
+
+This adds no ASIC RTL or registers. The offline compiler reuses the dead
+enemy's animation field as a three-update countdown. Two extra 256 KiB
+pictures supply the shell pose: level 7 at 0x4C0000–0x4FFFFF (bank 19), and
+level 8 at 0x940000–0x97FFFF (bank 37). Existing game tables retain their sizes.
+The manifest now allocates 13,369,600 bytes; 3,407,616 bytes remain outside
+assets, including reserved/shared areas that must not be overwritten blindly.
+
+Regenerate with `make assets` and `make images`. Deploy the matching rule
+assets and shell pictures together. The connected FPGA/flash have not been
+updated by this asset change.
+
+### Three rotating collectible coins (not yet deployed)
+
+Each checkpoint section has coins at local cells 7, 9, and 11, spanning
+logical pixel rows 192–199. They are placed on clear background outside every
+enemy patrol. Mario collects each coin independently on contact; it disappears
+and remains absent until death, restart, level load, or a checkpoint-section
+change. Returning to a previous section resets its coins, matching the local
+enemy-encounter reset policy. There is no score, sound effect, or reward.
+
+A four-phase full/half/edge/half-width overlay rotates around a vertical axis,
+advancing at 15 Hz (one cycle per 267 ms). Mario is rendered in front of coins.
+The compiler supplies three contact bits in result bits 43:41, formerly unused.
+The flash transfer is still 11 nibbles; records remain eight bytes and all
+picture and state-bank allocations are unchanged. Hardware keeps a three-bit
+collection mask, checkpoint tag, and rotation phase instead of duplicating the
+offline state graph for every collection pattern.
+
+This changes the ASIC RTL and requires matched rule tables and a rebuilt FPGA
+image. Local synthesis measures 11,561.0880 um^2 and 244 flip-flops: +788.2560
+um^2 versus no coins, and 361.0880 um^2 above the 11,200 um^2 target. This
+experimental feature is NOT area-qualified; hosted hardening is still pending.
+Tests cover independent collection/reset behavior, all 32 checkpoint routes,
+flash records, enemy separation, and rendered coin pixels.

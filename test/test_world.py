@@ -49,12 +49,21 @@ for _ in range(3):fall=transition(2,fall,0)
 assert fall&15==DEAD
 for level in (5,6,7):
     for enemy in LEVELS[level]['enemies']:
+        if enemy['kind']=='coin':continue
         x,feet=enemy['x'],enemy['feet']
         side=transition(level,pack(x,feet,0),0)
         assert unpack(side)[2]==DEAD, ('enemy side contact',level,enemy)
         stomp=transition(level,pack(x,feet-2,8),0)
-        assert enemy_state(stomp)==(0,True) and unpack(stomp)[2]==1, ('stomp/bounce',level,enemy)
-        assert enemy_visual(level,stomp)==0
+        assert enemy_state(stomp)==(SHELL_TICKS if enemy['kind']=='tortoise' else 0,True) and unpack(stomp)[2]==1, ('stomp/bounce',level,enemy)
+        assert enemy_visual(level,stomp)==(16 if enemy['kind']=='tortoise' else 0)
+        if enemy['kind']=='tortoise':
+            fading=stomp
+            for remaining in (3,2,1):
+                assert enemy_state(fading)==(remaining,True)
+                assert (render_word(level,0,fading)>>4)&63==SHELL_BANKS[level]
+                fading=transition(level,fading,0)
+            assert enemy_state(fading)==(0,True) and enemy_visual(level,fading)==0
+            assert enemy_visual(level,transition(level,fading,0))==0
         continued=transition(level,stomp,0)
         assert enemy_state(continued)[1] and unpack(continued)[2]!=DEAD
         patrol=transition(level,pack(x-8,feet,0),0)

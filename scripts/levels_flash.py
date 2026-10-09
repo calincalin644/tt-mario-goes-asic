@@ -1,12 +1,10 @@
 """MicroPython updater for owned Mario assets; unrelated relocated blocks stay intact."""
 import gc,hashlib,binascii,deflate
 import flash_progress as progress
-ENEMY_BANKS=(0,1,3,5,7,9,10,12,13,14,15,24,25,26,27,28,29,30,31,57,58,59,60,61)
-REGIONS=((0xc00000,0xe00100),(0x800000,0x940000),(0xa00000,0xc00000),(0x500000,0x600000))+tuple((bank<<18,(bank+1)<<18) for bank in ENEMY_BANKS)
-READ_REGIONS=REGIONS+((0x400000,0x440100),(0x800000,0xc00000))
-RELOCATIONS={0x82:0x45,0xad:0x46,0xb1:0x47,0x5f:0x48}
-def physical(address):
-    return (RELOCATIONS.get(address>>16,address>>16)<<16)|(address&65535)
+# Generated physical asset regions. Rule relocation is already applied in the manifest.
+REGIONS=((0, 524288), (589824, 1114112), (1179648, 1769472), (1835008, 2097152), (2162688, 3014656), (3080192, 4194304), (4521984, 6225920), (6291456, 8519680), (8585216, 11337728), (11403264, 11599872), (11665408, 14680320), (14745600, 16515072))
+READ_REGIONS=REGIONS+((0x400000,0x440100),)
+def physical(address):return address
 def allowed(address,length,writing=False):
     return length>0 and any(lo<=address and address+length<=hi for lo,hi in (REGIONS if writing else READ_REGIONS))
 def hash_file(path,asset=0):

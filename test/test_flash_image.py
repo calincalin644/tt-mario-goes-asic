@@ -12,7 +12,7 @@ for asset in manifest:
     restored = bytearray()
     for offset in range(0, asset['size'], 65536):
         logical = asset['address'] + offset
-        physical = mapping.get(logical >> 16, logical >> 16) * 65536
+        physical = logical if asset.get('address_space')=='physical' else mapping.get(logical >> 16, logical >> 16) * 65536
         restored.extend(raw[physical:physical + min(65536, asset['size'] - offset)])
     assert hashlib.sha256(restored).hexdigest() == asset['sha256'], asset['file']
 for block in (0x08, 0x11, 0x1B, 0x20, 0x2E, 0x5F, 0x82, 0xAD, 0xB1, 0xFF):
@@ -20,3 +20,10 @@ for block in (0x08, 0x11, 0x1B, 0x20, 0x2E, 0x5F, 0x82, 0xAD, 0xB1, 0xFF):
 expected = (root / 'build/flash-16MiB.sha256').read_text().split()[0]
 assert hashlib.sha256(raw).hexdigest() == expected
 print(f'PASS: physical image reconstructs all {len(manifest)} assets; reserved blocks erased; checksum matches')
+
+# Hardware reset and DIP selector pointers must remain at their fixed addresses.
+import sys
+sys.path.insert(0,str(root/'scripts'))
+from world import physical
+assert physical(0x800000)==0x800000 and physical(0x83ffc0)==0x83ffc0
+assert raw[0x400000:0x440100]==b'\xff'*0x40100, 'legacy graphics region reused'

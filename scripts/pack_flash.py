@@ -1,7 +1,7 @@
 """Export a physical 16 MiB image for a dedicated W25Q128 flash.
 
-Manifest addresses are logical; gameplay pointers already contain the matching
-physical relocation. Unallocated bytes in this image are erased (0xff).
+New manifest entries use physical addresses; gameplay pointers contain the
+matching physical relocation. Legacy logical manifests remain supported. Unallocated bytes in this image are erased (0xff).
 """
 import hashlib
 import json
@@ -18,7 +18,7 @@ def pack():
             raise ValueError(f"Asset mismatch: {asset['file']}")
         for offset in range(0, len(data), 65536):
             logical = asset['address'] + offset
-            physical = (RELOCATIONS.get(logical >> 16, logical >> 16) << 16) | (logical & 65535)
+            physical = logical if asset.get('address_space')=='physical' else (RELOCATIONS.get(logical >> 16, logical >> 16) << 16) | (logical & 65535)
             chunk = data[offset:offset + 65536]
             end = physical + len(chunk)
             if logical % 65536 or end > len(image) or any(occupied[physical:end]):

@@ -16,7 +16,7 @@ flash-image: assets
 images: assets
 	python3 scripts/export_images.py
 
-check: test test-motion test-progress test-enemies test-boot test-audio test-melody test-music-flash
+check: test test-motion test-progress test-enemies test-boot test-audio test-melody test-music-flash test-coins
 
 .PHONY: test-boot
 test-boot:
@@ -82,3 +82,12 @@ test-melody: | build
 test-music-flash: assets
 	$(IVERILOG) -g2012 -s music_flash_test -o build/music-flash-test test/music_flash.v test/flash_model.v $(RTL)
 	vvp build/music-flash-test
+
+.PHONY:
+test-coins: | build
+	$(IVERILOG) -g2012 -s coins_test -o build/coins-test test/coins.v $(RTL)
+	vvp build/coins-test
+
+.PHONY: test-coins
+test-coins:
+	python3 test/test_coins.py

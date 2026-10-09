@@ -10,9 +10,12 @@ NODE_BITS=12
 NODES_PER_LEVEL=1<<NODE_BITS
 ENEMY_OFFSETS=(0,4,8,12,16,12,8,4)
 RULE_BASES=(0x800000,0x840000,0x880000,0x8c0000,0x900000,0xa00000,0xb00000,0x500000)
-NODE_CAPS=(4096,4096,4096,4096,4096,16384,16384,16384)
+NODE_CAPS=(4096, 3072, 3072, 3072, 5120, 14336, 14336, 15360)
 ENEMY_BANKS={5:(0,1,3,5,7,9,10,12),6:(13,14,15,24,25,26,27,28),7:(29,30,31,57,58,59,60,61)}
-RELOCATIONS={0x82:0x45,0xad:0x46,0xb1:0x47,0x5f:0x48}
+COIN_BANKS={0:(62,33),1:(34,35),2:(36,38),3:(39,40),4:(41,42)}
+SHELL_BANKS={6:19,7:37}
+SHELL_TICKS=3  # 200 ms at the 15 Hz gameplay rate
+RELOCATIONS={129: 10, 130: 11, 132: 18, 133: 19, 134: 24, 136: 25, 137: 26, 138: 33, 140: 34, 141: 35, 142: 44, 144: 45, 145: 47, 146: 69, 147: 70, 148: 71, 160: 72, 161: 73, 162: 74, 163: 75, 164: 94, 165: 174, 166: 175, 167: 190, 168: 191, 169: 225, 170: 226, 171: 227, 173: 9, 177: 129, 94: 16}
 SELECTOR_NODE=4095
 
 def physical(address):return (RELOCATIONS.get(address>>16,address>>16)<<16)|(address&65535)
@@ -82,7 +85,9 @@ def enemy_state(state):return (state>>17)&7,bool(state&(1<<20))
 def enemy_visual(level,state):
     x,_,phase=unpack(state)
     animation,dead=enemy_state(state)
-    return (8|animation) if enemy_for(level,x) and not dead else 0
+    enemy=enemy_for(level,x)
+    if enemy and dead and animation and enemy['kind']=='tortoise':return 16
+    return (8|animation) if enemy and not dead else 0
 
 def transition(level,state,action):
     old_x,old_y,old_phase=unpack(state)
@@ -95,8 +100,14 @@ def transition(level,state,action):
     animation,dead=enemy_state(state) if x//64==old_x//64 else (0,False)
     # Start patrolling when Mario comes within 128 logical pixels. Distant
     # enemies stay visible but idle; this bounds the reachable table size.
-    active=abs(x-enemy['x'])<=16
-    animation=(animation+1)&7 if active and not dead else 0
+    active=abs(x-enemy['x'])<=(3 if enemy['kind']=='coin' else 16)
+    animation=max(0,animation-1) if dead else ((animation+1)&7 if active else 0)
+    if enemy['kind']=='coin':
+        animation=animation&1
+        cx=enemy['x']*8
+        if not dead and x*8<cx+8 and x*8+16>cx and (y-2)*8<enemy['feet']*8 and y*8>enemy['feet']*8-8:
+            dead=True;animation=0
+        return pack(x,y,phase,animation,dead)
     if not dead:
         ex=enemy['x']*8+ENEMY_OFFSETS[animation]
         bottom=enemy['feet']*8
@@ -104,7 +115,7 @@ def transition(level,state,action):
         overlap=x*8+14>ex+2 and x*8+2<ex+14
         if overlap and y>=old_y and old_y*8<=top and y*8>=top:
             # Bounce upward after a stomp. Both enemy types take one stomp.
-            y=enemy['feet']-2;phase=1;dead=True;animation=0
+            y=enemy['feet']-2;phase=1;dead=True;animation=SHELL_TICKS if enemy['kind']=='tortoise' else 0
         elif overlap and y*8>top and (y-2)*8<bottom:
             return pack(x,y,DEAD)
     return pack(x,y,phase,animation,dead)
@@ -128,7 +139,7 @@ def render_word(level,node,state,source=None,source_level=None):
         if old_phase not in (DEAD,WON) and abs(dx)<=1 and abs(dy)<=2:
             motion=dy&7;moved_x=int(dx!=0)
     visual=enemy_visual(level,state)
-    picture=ENEMY_BANKS[level][visual&7] if visual else 48+level
+    picture=(COIN_BANKS[level][visual&1] if level in COIN_BANKS else ENEMY_BANKS[level][visual&7]) if visual and visual!=16 else SHELL_BANKS[level] if visual==16 else 48+level
     # Send physical pointers in the result so the ASIC needs no level/bank
     # decoder or relocation logic. Each node has eight 8-byte action records.
     pointer=physical(RULE_BASES[level]+node*64)>>6

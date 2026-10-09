@@ -2,13 +2,21 @@
 import hashlib,json,zlib
 from pathlib import Path
 from PIL import Image,ImageDraw
-from world import ROOT,LEVELS,ground,ENEMY_OFFSETS,ENEMY_BANKS,RULE_BASES
+from world import ROOT,LEVELS,ground,ENEMY_OFFSETS,ENEMY_BANKS,COIN_BANKS,SHELL_BANKS,RULE_BASES,physical
 from compile_rules import build_rules
 PALETTE=[0b011011,0b100100,0b001100,0b111111,0b111000,0b110100,0b000001,0b101010,
          0b100110,0b000010,0b010101,0b101011,0b010000,0b001000,0b111001,0b000011]
 def rgb(c):return ((c>>4)*85,((c>>2)&3)*85,(c&3)*85)
 
 def enemy_sprite(kind,phase=0):
+    if kind=='coin':
+        im=Image.new('P',(16,16),255)
+        im.putpalette([v for c in PALETTE for v in rgb(c)]+[0]*(768-48))
+        for y in range(8):
+            for x in range(8):
+                if (not phase&1 or x in (3,4)) and (y not in (0,7) or 2<=x<=5):
+                    im.putpixel((x,y+8),3 if x==3 else 4)
+        return im
     rows=json.loads((ROOT/'assets/enemies.json').read_text())[kind]
     assert len(rows)==16 and all(len(row)==16 for row in rows)
     im=Image.new('P',(16,16),255)
@@ -22,11 +30,11 @@ def enemy_sprite(kind,phase=0):
     if phase>=4:im=im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
     return im
 
-def draw_enemies(im,world,phase):
+def draw_enemies(im,world,phase,shell=False):
     for enemy in world.get('enemies',[]):
-        sprite=enemy_sprite(enemy['kind'],phase)
+        sprite=enemy_sprite('tortoise_shell_upside_down' if shell and enemy['kind']=='tortoise' else enemy['kind'],phase)
         mask=Image.frombytes('L',sprite.size,bytes(0 if pixel==255 else 255 for pixel in sprite.tobytes()))
-        im.paste(sprite,(enemy['x']*8+ENEMY_OFFSETS[phase],enemy['feet']*8-16),mask)
+        im.paste(sprite,(enemy['x']*8+(0 if enemy['kind']=='coin' else ENEMY_OFFSETS[phase]),enemy['feet']*8-16),mask)
 
 def pack_picture(im):
     pixels=im.tobytes()
@@ -148,13 +156,19 @@ def build():
     variants=[]
     for level,world in enumerate(LEVELS):
         background=render_level(level,world,graphics)
-        if level in ENEMY_BANKS:
-            for phase in range(8):
+        if level in ENEMY_BANKS or level in COIN_BANKS:
+            for phase in range(2 if level in COIN_BANKS else 8):
                 picture=background.copy();draw_enemies(picture,world,phase)
                 name=f'enemy-{level}-{phase}.bin'
                 (ROOT/'build'/name).write_bytes(pack_picture(picture))
-                variants.append((name,ENEMY_BANKS[level][phase]<<18))
+                variants.append((name,(COIN_BANKS[level][phase] if level in COIN_BANKS else ENEMY_BANKS[level][phase])<<18))
                 picture.convert('RGB').save(ROOT/f'build/world-{level}-enemy-{phase}.png')
+        if level in SHELL_BANKS:
+            picture=background.copy();draw_enemies(picture,world,0,shell=True)
+            name=f'shell-{level}.bin'
+            (ROOT/'build'/name).write_bytes(pack_picture(picture))
+            variants.append((name,SHELL_BANKS[level]<<18))
+            picture.convert('RGB').save(ROOT/f'build/world-{level}-shell.png')
     # Four-colour player: transparent, red, skin, blue. Animation remains external.
     sprites=json.loads((ROOT/'assets/sprites.json').read_text())
     remap=(0,1,3,2,3,2,3,2)
@@ -171,11 +185,19 @@ def build():
     (ROOT/'build/graphics.bin').write_bytes(graphics)
     build_rules()
     manifest=[]
-    for name,base in [('graphics.bin',0xc00000)]+variants+[(f'rules-{level}.bin',base) for level,base in enumerate(RULE_BASES)]:
+    # Pictures use physical banks; split logical rules into physically relocated pages.
+    pages=[]
+    for level,base in enumerate(RULE_BASES):
+        raw=(ROOT/f'build/rules-{level}.bin').read_bytes()
+        for offset in range(0,len(raw),65536):
+            name=f'rules-{level}-page-{offset//65536}.bin'
+            (ROOT/'build'/name).write_bytes(raw[offset:offset+65536])
+            pages.append((name,physical(base+offset)))
+    for name,base in [('graphics.bin',0xc00000)]+variants+pages:
         data=(ROOT/'build'/name).read_bytes()
         compressed=zlib.compress(data,9)
         (ROOT/'build'/(name+'.zlib')).write_bytes(compressed)
-        manifest.append(dict(file=name,address=base,size=len(data),sha256=hashlib.sha256(data).hexdigest(),
+        manifest.append(dict(file=name,address=base,address_space='physical',size=len(data),sha256=hashlib.sha256(data).hexdigest(),
                              compressed_sha256=hashlib.sha256(compressed).hexdigest()))
     (ROOT/'build/assets.json').write_text(json.dumps(manifest,indent=2)+'\n')
     (ROOT/'build/flash-load.vh').write_text(''.join(

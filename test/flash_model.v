@@ -27,12 +27,6 @@ module flash_model(input wire cs,sck,input wire [7:0] host,oe,output wire [7:0] 
  initial begin
   for(i=0;i<16777216;i=i+1) memory[i]=8'hff;
   `include "build/flash-load.vh"
-  for(i=0;i<65536;i=i+1) begin
-   memory[24'h450000+i]=memory[24'h820000+i];
-   memory[24'h460000+i]=memory[24'had0000+i];
-   memory[24'h470000+i]=memory[24'hb10000+i];
-   memory[24'h480000+i]=memory[24'h5f0000+i];
-  end
   drive=0;data=0;clocks=0;
  end
  assign pins=drive ? {2'b00,data[3:2],1'b0,data[1:0],1'b0}:0;

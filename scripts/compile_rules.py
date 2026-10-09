@@ -37,7 +37,7 @@ def build_rules():
         (ROOT/f'build/rules-{level}.bin').write_bytes(bank)
         metadata.append(dict(name=LEVELS[level]['name'],nodes=nodes,count=len(nodes)))
         print('Level',level+1,LEVELS[level]['name'],len(nodes),'reachable states')
-    assert len(rules)==0x440000
+    assert len(rules)==sum(NODE_CAPS)*64
     (ROOT/'build/rules.bin').write_bytes(rules)
     (ROOT/'build/nodes.json').write_text(json.dumps(metadata)+'\n')
     return graphs

@@ -11,7 +11,7 @@ enemy_phase=int(sys.argv[5]) if len(sys.argv)>5 else -1
 render_x=x*8+fraction_x*2
 render_feet=208+fraction_y*2
 camera=max(0,render_x-96)
-source=f'world-{level}-enemy-{enemy_phase}.png' if enemy_phase>=0 else f'world-{level}.png'
+source=f'world-{level}-shell.png' if enemy_phase==-2 else f'world-{level}-enemy-{enemy_phase}.png' if enemy_phase>=0 else f'world-{level}.png'
 expected=Image.open(ROOT/'build'/source).convert('RGB').crop((camera,0,camera+320,240)).resize((640,480),Image.Resampling.NEAREST)
 actual=Image.open(ROOT/f'build/frame-{x}.ppm').convert('RGB')
 data=(ROOT/'build/graphics.bin').read_bytes()
