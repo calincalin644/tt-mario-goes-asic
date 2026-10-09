@@ -98,7 +98,7 @@ if $load_game; then
     # Pinned to the board-tested eight-level enemy/DIP build. The board loader
     # checks this hash before loading and configures manual inputs and 25.2 MHz.
     load_command=("$mpremote" connect "${FPGA_PORT:-auto}" resume exec
-        "import levels_board; levels_board.load('4c131ad57b8e9f955a3292111356320da3d095114ff9082d8a868f11e8ead85c')")
+        "import levels_board; levels_board.load('e3ce456c824bb8fb5c41ba6256f89db6a23b690bd7439a1470682ebe8407b12c')")
 fi
 
 if [[ $mode == dry ]]; then

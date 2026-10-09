@@ -136,12 +136,15 @@ module tt_um_mario_levels(input wire [7:0] ui_in,output wire [7:0] uo_out,
   if(raster_reset) video<=8'h88;
   else video<={hs_d,rgb[0],rgb[2],rgb[4],vs_d,rgb[1],rgb[3],rgb[5]};
  end
- // Reuse raster bits: 787.5 kHz PWM, approximately 984 Hz jump tone.
- // v[4] restarts each frame; no additional counters or flip-flops.
- // jump_beep holds the initial press for four frames; action permits auto-jump.
- // DIP loads must stay silent.
- wire pwm_tone=(!h[4] && !h[3]) || (v[4] && (!h[4] || !h[3]));
- wire audio=rst_n && jump_beep && !level_load ? pwm_tone:!h[4];
+ // One melody voice shares the VGA line/frame enables and existing PWM carrier.
+ // Jump has priority for four frames; the melody sequence continues underneath.
+ wire music_tone,music_playing;
+ mario_melody music(clk,rst_n,ena && !level_load,h==799,h==799 && v==524,
+                    music_tone,music_playing);
+ wire sound_tone=jump_beep ? v[4]:music_tone;
+ wire sound_enable=rst_n && ena && !level_load && (jump_beep || music_playing);
+ wire pwm_tone=(!h[4] && !h[3]) || (sound_tone && (!h[4] || !h[3]));
+ wire audio=sound_enable ? pwm_tone:!h[4];
  // Audio PMOD intercepts UIO7 and pulls the downstream PSRAM select high.
  assign uio_out={audio,flash_pins[6:0]};
  assign uo_out=video;
@@ -217,4 +220,119 @@ module mario_stream_flash(input wire clk,rst_n,input wire [9:0] h,
   end
  end
 endmodule
+// BEGIN GENERATED MELODY
+// Generated from assets/melody.json: 661 frames, 82 repeated-value runs.
+module mario_melody(input wire clk,rst_n,enable,line_tick,frame_tick,
+ output reg tone,output wire playing);
+ reg [6:0] position;
+ reg [4:0] elapsed;
+ reg [5:0] counter;
+ reg [5:0] reload;
+ reg [4:0] last_frame;
+ always @* begin
+  reload=0;last_frame=0;
+  case(position)
+   7'd0: begin reload=6'd23;last_frame=5'd6;end
+   7'd1: begin reload=6'd0;last_frame=5'd0;end
+   7'd2: begin reload=6'd23;last_frame=5'd7;end
+   7'd3: begin reload=6'd0;last_frame=5'd8;end
+   7'd4: begin reload=6'd23;last_frame=5'd6;end
+   7'd5: begin reload=6'd0;last_frame=5'd8;end
+   7'd6: begin reload=6'd29;last_frame=5'd7;end
+   7'd7: begin reload=6'd0;last_frame=5'd0;end
+   7'd8: begin reload=6'd23;last_frame=5'd6;end
+   7'd9: begin reload=6'd0;last_frame=5'd8;end
+   7'd10: begin reload=6'd19;last_frame=5'd6;end
+   7'd11: begin reload=6'd0;last_frame=5'd25;end
+   7'd12: begin reload=6'd39;last_frame=5'd14;end
+   7'd13: begin reload=6'd0;last_frame=5'd17;end
+   7'd14: begin reload=6'd29;last_frame=5'd14;end
+   7'd15: begin reload=6'd0;last_frame=5'd9;end
+   7'd16: begin reload=6'd39;last_frame=5'd14;end
+   7'd17: begin reload=6'd0;last_frame=5'd9;end
+   7'd18: begin reload=6'd47;last_frame=5'd14;end
+   7'd19: begin reload=6'd0;last_frame=5'd8;end
+   7'd20: begin reload=6'd35;last_frame=5'd14;end
+   7'd21: begin reload=6'd0;last_frame=5'd1;end
+   7'd22: begin reload=6'd31;last_frame=5'd14;end
+   7'd23: begin reload=6'd0;last_frame=5'd0;end
+   7'd24: begin reload=6'd33;last_frame=5'd7;end
+   7'd25: begin reload=6'd0;last_frame=5'd0;end
+   7'd26: begin reload=6'd35;last_frame=5'd14;end
+   7'd27: begin reload=6'd0;last_frame=5'd0;end
+   7'd28: begin reload=6'd39;last_frame=5'd9;end
+   7'd29: begin reload=6'd0;last_frame=5'd0;end
+   7'd30: begin reload=6'd23;last_frame=5'd9;end
+   7'd31: begin reload=6'd0;last_frame=5'd0;end
+   7'd32: begin reload=6'd19;last_frame=5'd9;end
+   7'd33: begin reload=6'd0;last_frame=5'd0;end
+   7'd34: begin reload=6'd17;last_frame=5'd14;end
+   7'd35: begin reload=6'd0;last_frame=5'd1;end
+   7'd36: begin reload=6'd22;last_frame=5'd6;end
+   7'd37: begin reload=6'd0;last_frame=5'd0;end
+   7'd38: begin reload=6'd19;last_frame=5'd6;end
+   7'd39: begin reload=6'd0;last_frame=5'd9;end
+   7'd40: begin reload=6'd23;last_frame=5'd13;end
+   7'd41: begin reload=6'd0;last_frame=5'd1;end
+   7'd42: begin reload=6'd29;last_frame=5'd6;end
+   7'd43: begin reload=6'd0;last_frame=5'd0;end
+   7'd44: begin reload=6'd26;last_frame=5'd7;end
+   7'd45: begin reload=6'd0;last_frame=5'd0;end
+   7'd46: begin reload=6'd31;last_frame=5'd13;end
+   7'd47: begin reload=6'd0;last_frame=5'd9;end
+   7'd48: begin reload=6'd29;last_frame=5'd14;end
+   7'd49: begin reload=6'd0;last_frame=5'd9;end
+   7'd50: begin reload=6'd39;last_frame=5'd14;end
+   7'd51: begin reload=6'd0;last_frame=5'd9;end
+   7'd52: begin reload=6'd47;last_frame=5'd14;end
+   7'd53: begin reload=6'd0;last_frame=5'd9;end
+   7'd54: begin reload=6'd35;last_frame=5'd14;end
+   7'd55: begin reload=6'd0;last_frame=5'd0;end
+   7'd56: begin reload=6'd31;last_frame=5'd14;end
+   7'd57: begin reload=6'd0;last_frame=5'd1;end
+   7'd58: begin reload=6'd33;last_frame=5'd6;end
+   7'd59: begin reload=6'd0;last_frame=5'd0;end
+   7'd60: begin reload=6'd35;last_frame=5'd14;end
+   7'd61: begin reload=6'd0;last_frame=5'd0;end
+   7'd62: begin reload=6'd39;last_frame=5'd9;end
+   7'd63: begin reload=6'd0;last_frame=5'd0;end
+   7'd64: begin reload=6'd23;last_frame=5'd9;end
+   7'd65: begin reload=6'd0;last_frame=5'd0;end
+   7'd66: begin reload=6'd19;last_frame=5'd9;end
+   7'd67: begin reload=6'd0;last_frame=5'd0;end
+   7'd68: begin reload=6'd17;last_frame=5'd14;end
+   7'd69: begin reload=6'd0;last_frame=5'd1;end
+   7'd70: begin reload=6'd22;last_frame=5'd6;end
+   7'd71: begin reload=6'd0;last_frame=5'd0;end
+   7'd72: begin reload=6'd19;last_frame=5'd7;end
+   7'd73: begin reload=6'd0;last_frame=5'd8;end
+   7'd74: begin reload=6'd23;last_frame=5'd14;end
+   7'd75: begin reload=6'd0;last_frame=5'd0;end
+   7'd76: begin reload=6'd29;last_frame=5'd7;end
+   7'd77: begin reload=6'd0;last_frame=5'd0;end
+   7'd78: begin reload=6'd26;last_frame=5'd6;end
+   7'd79: begin reload=6'd0;last_frame=5'd0;end
+   7'd80: begin reload=6'd31;last_frame=5'd14;end
+   7'd81: begin reload=6'd0;last_frame=5'd9;end
+   default: begin end
+  endcase
+ end
+ assign playing=enable && |reload;
+ always @(posedge clk) begin
+  if(!rst_n) begin position<=0;elapsed<=0;counter<=0;tone<=0;end
+  else begin
+   if(enable && frame_tick) begin
+    if(elapsed==last_frame) begin
+     elapsed<=0;position<=position==7'd81 ? 7'd0:position+1'b1;
+    end else elapsed<=elapsed+1'b1;
+   end
+   if(!playing) begin counter<=0;tone<=0;end
+   else if(line_tick) begin
+    if(counter==0) begin counter<=reload;tone<=!tone;end
+    else counter<=counter-1'b1;
+   end
+  end
+ end
+endmodule
+// END GENERATED MELODY
 `default_nettype wire

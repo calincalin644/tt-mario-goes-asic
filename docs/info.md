@@ -19,7 +19,7 @@ position, picture bank and motion/status information. The compiler resolves
 physics, collisions, checkpoints and enemies offline. PSRAM is not used.
 
 The design requests one tile. The measured mapped SKY130 cell area is
-9,656.76 µm²; physical fit and timing require the shuttle's GDS/precheck results.
+11,199.49 µm² (239 flip-flops) for the melody build; physical fit and timing require the shuttle's GDS/precheck results.
 
 Mountains and background masonry fit within dry-land spans rather than crossing
 water gaps. Trees and the finish gate also have dry foundations. These decorations
@@ -52,7 +52,7 @@ ON holds the character at that level's entry.
 | 011 | 4: Watch Your Landing | Spikes and holes |
 | 100 | 5: High Water | Raised platforms across wide water |
 | 101 | 6: Mushroom Meadow | Four moving mushrooms |
-| 110 | 7: Lone Tortoise | One moving tortoise |
+| 110 | 7: Tortoise Trail | Four moving tortoises |
 | 111 | 8: Water and Wildlife | Water, raised platforms and enemies |
 
 Jump onto enemies to defeat them and bounce. Side contact kills the player.
@@ -89,17 +89,19 @@ UO3 = VSYNC and UO7 = HSYNC. Sync pulses are active low.
 
 ## Jump audio
 
-A new jump-button press produces a roughly 984 Hz beep for four video frames
-(66.7 ms). Holding jump does not repeat it. It signals the button action, including
-an attempted mid-air jump or restart, rather than a confirmed physics transition.
-DIP level loading stays silent. No sound assets or flash changes are required.
+A single-voice melody loops every 661 VGA frames (about 11.02 seconds), using
+hardwired notes and rests from the supplied MIDI. A 31.5 kHz line enable drives
+the pitch divider; 60 Hz frame ticks drive the sequence. No external flash is
+used for sound. Consecutive identical slots are compacted into 82 runs.
 
-The existing horizontal counter produces 787.5 kHz PWM: 50% while silent,
-25%/75% for the tone. Vertical counter bit 4 supplies the pitch; its frame reset
-adds 60 Hz modulation. There is no separate oscillator or duration counter.
-One beep latch keeps the initial-press sound separate from the held jump action;
-the complete design has 209 flip-flops.
-Reset releases the audio pin along with the flash bus.
+A new jump-button press produces the existing roughly 984 Hz beep for four
+frames (66.7 ms), temporarily replacing the melody. The music timeline keeps
+advancing, so playback returns at the current point. Holding jump repeats
+jumps without repeating the beep. DIP level loading and disabled gameplay mute
+and pause the music; reset restarts it and releases the BIDIR drivers.
 
-Use the [Tiny Tapeout Audio PMOD](https://github.com/MichaelBell/tt-audio-pmod)
-on BIDIR, with the QSPI PMOD in its passthrough connector.
+The existing raster counter supplies the 787.5 kHz PWM carrier: 50% while
+silent and 25%/75% for the tone. Use the Tiny Tapeout Audio PMOD on BIDIR,
+with the QSPI PMOD in its passthrough; its downstream PSRAM B select must stay
+isolated from PWM. Music is hardwired and requires a new bitstream/ASIC RTL;
+it cannot be added by changing flash alone.

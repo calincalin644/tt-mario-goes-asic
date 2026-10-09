@@ -57,17 +57,18 @@ Only `src/tt_um_mario_levels.v` and `src/controls.v` are synthesis sources.
 The cloned SKY130 shuttle's GDS, precheck, gate-level and documentation workflows
 are retained. Push the prepared repository to run those workflows.
 
-The source design measured **9,656.76 µm² of mapped SKY130 cells**, with 209
-flip-flops. This is not a placed-and-routed result: one-tile fit, ASIC timing and
-precheck remain to be confirmed by the GDS workflow. Local RTL simulation and
-FPGA operation do not replace those checks.
+The melody build maps locally to **11,199.49 µm²** and **239 flip-flops**:
+70.00% of the nominal 16,000 µm² budget, just below the 11,200 µm² target.
+The jump-only baseline was 9,656.76 µm²; the added melody costs 1,542.73 µm²
+in this mapping. These are pre-placement estimates, not final utilization.
+The previous CI hardening predates the melody and must be rerun for this RTL.
 
 ## Optional FPGA build
 
 `make fpga` uses Yosys, nextpnr-ice40 and IceStorm with the FabricFox wrapper and
 pin constraints in `fpga/`. This wrapper is not an ASIC source. The source design
-uses 647/5,280 FPGA logic cells and no block RAM, DSP or PLL; the audio build routes at
-36.86 MHz (25.2 MHz required). These are FPGA results, not ASIC resource counts.
+uses 703/5,280 FPGA logic cells, one block RAM for the hardwired melody table,
+and no DSP or PLL; the build routes at 36.86 MHz (25.2 MHz required). These are FPGA results, not ASIC resource counts.
 
 For a local mapped-area estimate, run `make area LIBERTY=/path/to/sky130.lib`.
 No workstation-specific paths or tools are included.
@@ -138,12 +139,22 @@ only within the current checkpoint section. One-hit shields are not implemented.
 The repository retains the template Apache-2.0 license. Mario and related names
 and characters belong to their respective owners; this is an independent project.
 
-## Jump beep
+## Melody and jump beep
 
-Holding jump repeats jumps after landing; only the initial press plays a
-four-frame beep using the VGA counters. Release and press again to beep again.
-Separating held jump from its beep uses one additional register; the combined
-build measures 9,656.76 µm². DIP level selection is muted.
-Connect BIDIR → Audio PMOD → QSPI PMOD; the Audio PMOD must isolate UIO7
-from the downstream PSRAM select. See [audio wiring](docs/info.md#jump-audio).
-No flash asset update is needed.
+The supplied MIDI's opening ten bars loop during gameplay as one voice. The
+661-frame sequence uses VGA frame ticks for timing and a VGA-line divider for
+pitch. Consecutive identical frame slots compile into 82 hardwired runs;
+`assets/melody.json` and `scripts/build_melody.py` regenerate the RTL with
+`make melody`. There are no sound reads from external flash. ASIC synthesis
+maps the table to logic; the FPGA mapper uses one block RAM.
+
+A fresh jump press overrides the melody with the existing 66.7 ms beep. The
+melody keeps advancing underneath and resumes at its current position. Held
+jump repeats jumps without repeated beeps. Reset restarts the tune; disabled
+gameplay and DIP level loading mute and pause it. No bass or accompaniment
+is implemented. Connect BIDIR → Audio PMOD → QSPI PMOD; the Audio PMOD
+isolates UIO7 from downstream PSRAM B select. See [audio wiring](docs/info.md#jump-audio).
+
+`test/test_melody.py` checks every frame slot, two loops, pitch-divider timing,
+pause and reset. `test/audio.v` checks PWM and jump priority. The prior jump-only
+bitstream is retained locally under `build/before-melody/` for rollback.

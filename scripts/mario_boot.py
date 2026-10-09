@@ -9,7 +9,7 @@ import micropython
 import rp2
 import sys
 
-BITSTREAM_SHA256 = '4c131ad57b8e9f955a3292111356320da3d095114ff9082d8a868f11e8ead85c'
+BITSTREAM_SHA256 = 'e3ce456c824bb8fb5c41ba6256f89db6a23b690bd7439a1470682ebe8407b12c'
 _controller = None
 
 

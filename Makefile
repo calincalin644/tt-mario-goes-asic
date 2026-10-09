@@ -16,7 +16,7 @@ flash-image: assets
 images: assets
 	python3 scripts/export_images.py
 
-check: test test-motion test-progress test-enemies test-boot test-audio
+check: test test-motion test-progress test-enemies test-boot test-audio test-melody
 
 .PHONY: test-boot
 test-boot:
@@ -70,3 +70,10 @@ test-enemies: assets
 test-audio: | build
 	$(IVERILOG) -g2012 -s audio_test -o build/audio test/audio.v $(RTL)
 	vvp build/audio
+
+.PHONY: melody test-melody
+melody:
+	python3 scripts/build_melody.py
+
+test-melody: | build
+	python3 test/test_melody.py

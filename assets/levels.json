@@ -404,8 +404,8 @@
     ]
   },
   {
-    "name": "Lone Tortoise",
-    "lesson": "JUMP ON THE TORTOISE",
+    "name": "Tortoise Trail",
+    "lesson": "JUMP ON THE TORTOISES",
     "width": 256,
     "finish": 228,
     "checkpoints": [
@@ -421,7 +421,22 @@
     "enemies": [
       {
         "kind": "tortoise",
+        "x": 35,
+        "feet": 26
+      },
+      {
+        "kind": "tortoise",
+        "x": 99,
+        "feet": 26
+      },
+      {
+        "kind": "tortoise",
         "x": 163,
+        "feet": 26
+      },
+      {
+        "kind": "tortoise",
+        "x": 219,
         "feet": 26
       }
     ],

@@ -107,3 +107,19 @@ The MicroPython files `levels_flash.py`, `flash_progress.py`, `levels_board.py`
 and `flash_pmod.py` are tested reference helpers for FabricFox. Their pin numbers,
 FPGA checks and board loader require adaptation for a different carrier. There
 is intentionally no workstation-specific migration uploader in this repository.
+
+## Four-tortoise level update
+
+Level 7 is now **Tortoise Trail**, with tortoises at world cells 35, 99, 163
+and 219: one in each checkpoint section. The graph uses 13,460 of 16,384
+reserved nodes (previously 5,276). No RTL, FPGA bitstream or flash allocation
+changes are required. Rebuild all assets together: the graphics, eight level-7
+animation pictures and level-7 rules change, as do entry records in other rule
+files that select the initial enemy picture. Use manifest hashes to identify
+all changed assets rather than updating only `rules-6.bin`.
+
+Total asset allocation remains 12,845,312 bytes. The guarded in-place updater
+must verify the previous manifest before replacing changed regions and apply
+the existing rule-address relocation. Generating files does not program the
+PMOD. The four-tortoise assets were programmed and readback-verified on the board
+with the melody bitstream; see the local `build/melody-deployment.log`.

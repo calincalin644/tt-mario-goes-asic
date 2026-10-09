@@ -22,11 +22,12 @@ def load(expected_hash, start=True):
     import machine
     import sys
     from ttboard.boot.demoboard_detect import DemoboardDetect, DemoboardCarrier
+    # Probe before importing FPGA helpers that capture the selected GPIO map.
+    DemoboardDetect.probe()
     from ttboard.demoboard import DemoBoard
     from ttboard.fpga.fpga_mux import BitStream
     from ttboard.mode import RPMode
 
-    DemoboardDetect.probe()
     if DemoboardDetect.CarrierVersion != DemoboardCarrier.FPGA:
         raise RuntimeError('FabricFox carrier not detected')
     actual = sha256(BITSTREAM)
