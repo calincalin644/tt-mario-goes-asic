@@ -8,11 +8,8 @@ import numpy as np
 ROOT=Path(__file__).resolve().parents[1]
 def render(output,repeats=2):
  a=json.loads((ROOT/'assets/melody.json').read_text())
- # Derive timing independently from the compact score, check exported slots.
- slots=[]
- for i,note in enumerate(a['step_notes']):
-  slots += [a['note_divisors'][note]]*(6+(i&1))+[0]
- assert slots==a['frame_divisors']
+ slots=a['frame_divisors']
+ assert len(slots)==a['frames']
  levels=[];count=0;polarity=0
  for divisor in slots*repeats:
   for _ in range(525):

@@ -57,8 +57,8 @@ Only `src/tt_um_mario_levels.v` and `src/controls.v` are synthesis sources.
 The cloned SKY130 shuttle's GDS, precheck, gate-level and documentation workflows
 are retained. Push the prepared repository to run those workflows.
 
-The fixed-step melody maps locally to **11,093.14 µm²** and **232 flip-flops**,
-106.35 µm² below the preceding melody implementation. This is a pre-placement
+The MIDI flash melody maps locally to **10,772.83 µm²** and **232 flip-flops**,
+320.31 µm² below the fixed-step hardwired melody implementation. This is a pre-placement
 estimate. The preceding melody failed CI placement at 13,701.89 µm²; the
 revised RTL still requires hosted synthesis and hardening. Local mapping does
 not establish compliance with the 11,200 µm² target in the shuttle flow.
@@ -141,17 +141,17 @@ and characters belong to their respective owners; this is an independent project
 
 ## Melody and jump beep
 
-The user-supplied 80-step score loops in 600 VGA frames (10 seconds).
-Steps alternate seven/eight frames for 120 BPM, with a one-frame silent gap
-at the end of every step. VGA line ticks drive integer pitch dividers.
+The approved MIDI-derived opening ten bars loop in 661 VGA frames (11.017 s).
+There is one flash byte per frame, preserving the approved pitches, note
+lengths and rests. Repeated bytes sustain a note; zero bytes are silence.
 `assets/melody.json` and `scripts/build_melody.py` regenerate RTL with
-`make melody`. There are no external-flash sound reads or decay envelope.
-The supplied E5 in the second phrase is retained exactly.
+`make melody`; `make assets` packs the data into existing graphics padding.
+The 661 pitch-reload bytes reside at 0xC3C000–0xC3C294. No decay envelope is used.
 
-Render two loops of the hardware-equivalent audible waveform with:
-`python3 scripts/render_melody.py build/mario-fixed-step.wav` (requires NumPy).
-The WAV models the divider and rests, excluding the ultrasonic PWM carrier
-and the PMOD/speaker analog response.
+Render two loops with:
+`python3 scripts/render_melody.py build/mario-approved-midi.wav` (requires NumPy).
+The WAV models divider pitch and frame timing, excluding the ultrasonic PWM
+carrier, startup delay, and the PMOD/speaker analog response.
 
 A fresh jump press overrides the melody with the existing 66.7 ms beep. The
 melody keeps advancing underneath and resumes at its current position. Held
@@ -163,3 +163,31 @@ isolates UIO7 from downstream PSRAM B select. See [audio wiring](docs/info.md#ju
 `test/test_melody.py` checks every frame slot, two loops, pitch-divider timing,
 pause and reset. `test/audio.v` checks PWM and jump priority. The prior jump-only
 bitstream is retained locally under `build/before-melody/` for rollback.
+
+### Flash melody scheduling
+
+The shared score occupies 661 formerly erased padding bytes; allocated flash
+size and every picture/sprite pixel are unchanged. Each byte holds N-1 for
+pitch frequency 31500/(2*N) Hz; zero denotes silence (bits 7:6 are unused).
+`make assets` packs the score from `assets/melody.json` into `graphics.bin`.
+This leaves 15,723 bytes unused in the first picture bank's padding.
+
+On row 481 at h=644, the existing sprite transaction instead reads
+0xC3C000 + music_position. At its second data nibble, a six-bit latch captures
+the pitch. The other bytes of the ordinary four-byte read are ignored for
+music, retaining the existing transaction length. Background streaming resumes
+at h=708. The ten-bit sequencer increments on row 482's final clock, after
+the current byte has been captured, and wraps after index 660. It advances
+once per enabled frame, with no per-note duration counter. Reset starts at
+index zero and keeps audio silent until the first fetch.
+
+No game-state transaction is displaced: that uses row 480. Visible sprite
+rows are fetched normally before the next visible frame. Camera, picture-bank
+and level changes do not participate in the music address.
+
+`make test-music-flash` verifies all 661 bytes through the QSPI model while
+varying camera offsets and picture banks, then checks restored sprite reads
+and pitch retention. The previous deployed FPGA/flash pair remains unchanged;
+this RTL requires the updated graphics asset and a rebuilt FPGA image together.
+Current local synthesis: 10,772.8320 um^2, 232 flip-flops; hosted hardening
+has not been rerun, so the earlier placement failure is not yet resolved.

@@ -163,6 +163,11 @@ def build():
             reduced=sum(remap[(packed>>(3*x))&7]<<(2*x) for x in range(16))
             at=0x200000+(pose*16+row)*4
             graphics[at:at+4]=reduced.to_bytes(4,'big')
+    # First picture: 240 KiB pixels, then padding. Music uses its first 661 bytes.
+    melody=json.loads((ROOT/'assets/melody.json').read_text())
+    score=bytes(max(0,n-1) for n in melody['frame_divisors'])
+    assert len(score)==661 and max(score)<64
+    graphics[0x3c000:0x3c000+len(score)]=score
     (ROOT/'build/graphics.bin').write_bytes(graphics)
     build_rules()
     manifest=[]

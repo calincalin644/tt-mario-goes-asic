@@ -6,7 +6,7 @@ module stream_test;
  always @(posedge clk) if(!rst) h<=0;else h<=h==799 ? 10'd0:h+1'b1;
  reg game_slot=0;reg [2:0] action=0;
  wire [7:0] pins,out,oe;wire [40:0] player;wire [31:0] sprite;wire [3:0] bg;
- mario_stream_flash dut(clk,rst,h,game_slot,action,1'b0,24'hc00000,5'd0,pins,out,oe,player,sprite,bg);
+ mario_stream_flash dut(clk,rst,h,game_slot,action,1'b0,24'hc00000,5'd0,pins,out,oe,player,sprite,bg,1'b0,10'd0,);
  flash_model flash(out[0],out[3],out,oe,pins);
  reg [43:0] route[0:`ROUTE_COUNT-1];integer i;
  task advance(input [2:0] a);

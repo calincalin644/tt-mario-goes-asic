@@ -19,7 +19,7 @@ position, picture bank and motion/status information. The compiler resolves
 physics, collisions, checkpoints and enemies offline. PSRAM is not used.
 
 The design requests one tile. The measured mapped SKY130 cell area is
-11,093.14 µm² (232 flip-flops) locally for the fixed-step melody build. The preceding
+10,772.83 µm² (232 flip-flops) locally for the MIDI flash melody build. The preceding
 melody failed CI placement at 13,701.89 µm²; the revised RTL needs new CI validation.
 
 Mountains and background masonry fit within dry-land spans rather than crossing
@@ -90,11 +90,12 @@ UO3 = VSYNC and UO7 = HSYNC. Sync pulses are active low.
 
 ## Jump audio
 
-A single-voice melody loops every 600 VGA frames (10 seconds), using
-the user-supplied 80-step score. A 31.5 kHz line enable drives
-the pitch divider; 60 Hz frame ticks drive the sequence. No external flash is
-used for sound. Steps alternate seven/eight frames for 120 BPM; the final
-frame of each step is silent to separate repeated notes. No decay envelope is used.
+The approved MIDI-derived single voice loops every 661 VGA frames (11.017 s).
+A 31.5 kHz line enable drives the pitch divider. Flash stores one pitch-reload
+byte per frame at 0xC3C000–0xC3C294, inside existing picture padding. Repeated
+bytes sustain notes; zero bytes reproduce rests. The original approved frame
+sequence is preserved, without the fixed-step score's artificial articulation
+or a decay envelope. One shared copy serves every level and camera position.
 
 A new jump-button press produces the existing roughly 984 Hz beep for four
 frames (66.7 ms), temporarily replacing the melody. The music timeline keeps
@@ -105,5 +106,6 @@ and pause the music; reset restarts it and releases the BIDIR drivers.
 The existing raster counter supplies the 787.5 kHz PWM carrier: 50% while
 silent and 25%/75% for the tone. Use the Tiny Tapeout Audio PMOD on BIDIR,
 with the QSPI PMOD in its passthrough; its downstream PSRAM B select must stay
-isolated from PWM. Music is hardwired and requires a new bitstream/ASIC RTL;
-it cannot be added by changing flash alone.
+isolated from PWM. The 661-frame melody is flash-backed; new notes need asset regeneration, while
+the loop length remains a hardware constant. A different 661-frame score can
+be installed by changing flash alone; a longer loop requires new RTL.

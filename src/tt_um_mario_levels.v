@@ -86,9 +86,12 @@ module tt_um_mario_levels(input wire [7:0] ui_in,output wire [7:0] uo_out,
  wire [7:0] flash_pins;
  wire [31:0] sprite;
  wire [3:0] background;
+ wire [9:0] music_position;
+ wire [5:0] music_pitch;
+ wire music_slot=v==481;
  mario_stream_flash flash(clk,rst_n,h,game_slot,action,level_load,
   {player[9:4],next_v[8:1],camera}, {px[0],sprite_line},uio_in,flash_pins,uio_oe,
-  player,sprite,background);
+  player,sprite,background,music_slot,music_position,music_pitch);
  // All coordinate calculations precede pixel lookup by one clock.
  reg [8:0] sx;
  reg [7:0] sy;
@@ -139,8 +142,8 @@ module tt_um_mario_levels(input wire [7:0] ui_in,output wire [7:0] uo_out,
  // One melody voice shares the VGA line/frame enables and existing PWM carrier.
  // Jump has priority for four frames; the melody sequence continues underneath.
  wire music_tone,music_playing;
- mario_melody music(clk,rst_n,ena && !level_load,h==799,h==799 && v==524,
-                    music_tone,music_playing);
+ mario_melody music(clk,rst_n,ena && !level_load,h==799,h==799 && v==482,
+                    music_pitch,music_position,music_tone,music_playing);
  wire sound_tone=jump_beep ? v[4]:music_tone;
  wire sound_enable=rst_n && ena && !level_load && (jump_beep || music_playing);
  wire pwm_tone=(!h[4] && !h[3]) || (sound_tone && (!h[4] || !h[3]));
@@ -151,6 +154,7 @@ module tt_um_mario_levels(input wire [7:0] ui_in,output wire [7:0] uo_out,
  wire unused=&{1'b0,ui_in[7]};
 endmodule
 
+// Row 481 substitutes a music-padding read for the unused sprite read.
 // Two reads per scanline: small sprite (or one state transition in vblank),
 // then a streaming background row. 0xEB, 24-bit quad address, FF mode, 4 dummy.
 module mario_stream_flash(input wire clk,rst_n,input wire [9:0] h,
@@ -158,7 +162,8 @@ module mario_stream_flash(input wire clk,rst_n,input wire [9:0] h,
  input wire [23:0] background_row,
  input wire [4:0] sprite_index,input wire [7:0] pins_in,
  output wire [7:0] pins_out,pins_oe,output reg [40:0] player,
- output reg [31:0] sprite,output reg [3:0] background);
+ output reg [31:0] sprite,output reg [3:0] background,
+ input wire music_slot,input wire [9:0] music_position,output reg [5:0] music_pitch);
  localparam IDLE=0,SPRITE=1,GAME=2,BG=3;
  reg [1:0] mode;
  reg [4:0] count;
@@ -169,6 +174,7 @@ module mario_stream_flash(input wire clk,rst_n,input wire [9:0] h,
  wire [23:0] rule_address={rule_pointer,action,3'b000};
  wire [23:0] address=mode==GAME ? rule_address:
                       mode==BG ? background_row:
+                      music_slot ? {14'h30f0,music_position}:
                       {16'he000,1'b0,sprite_index,2'b00};
  reg [3:0] address_nibble;
  always @* case(count[2:0])
@@ -187,7 +193,7 @@ module mario_stream_flash(input wire clk,rst_n,input wire [9:0] h,
  always @(posedge clk) begin
   if(!rst_n) begin
    player<=41'h1000001eb00;sprite<=0;background<=0;
-   mode<=IDLE;count<=0;sck<=0;streaming<=0;prefetch<=0;
+   mode<=IDLE;count<=0;sck<=0;streaming<=0;prefetch<=0;music_pitch<=0;
   end else begin
    if(h==640) begin mode<=IDLE;sck<=0;streaming<=0;end
    else if(h==644) begin
@@ -205,7 +211,10 @@ module mario_stream_flash(input wire clk,rst_n,input wire [9:0] h,
      sck<=1;
      if(count>=20) begin
       case(mode)
-       SPRITE:sprite<={sprite[27:0],quad_in};
+       SPRITE:begin
+        sprite<={sprite[27:0],quad_in};
+        if(music_slot && count==21) music_pitch<={sprite[1:0],quad_in};
+       end
        GAME:player<={player[36:0],quad_in};
        BG:prefetch<=quad_in;
       endcase
@@ -221,43 +230,18 @@ module mario_stream_flash(input wire clk,rst_n,input wire [9:0] h,
  end
 endmodule
 // BEGIN GENERATED MELODY
-// 80 fixed steps: alternating 7/8 frames, final frame silent.
+// Approved MIDI: 661 flash bytes, one per VGA frame.
 module mario_melody(input wire clk,rst_n,enable,line_tick,frame_tick,
+ input wire [5:0] pitch_reload,output reg [9:0] position,
  output reg tone,output wire playing);
- reg [6:0] position;
- reg [2:0] elapsed;
  reg [5:0] counter;
- reg [5:0] pitch_reload;
- wire [2:0] last_frame={2'b11,position[0]};
- wire [5:0] reload=elapsed==last_frame ? 6'd0:pitch_reload;
- always @* begin
-  pitch_reload=0;
-  case(position)
-   7'd0,7'd1,7'd3,7'd6,7'd22,7'd33,7'd40,7'd55,7'd71: pitch_reload=6'd23; // E5
-   7'd5,7'd16,7'd42,7'd59,7'd62: pitch_reload=6'd29; // C5
-   7'd8,7'd34,7'd38,7'd50,7'd66: pitch_reload=6'd19; // G5
-   7'd12,7'd19,7'd32,7'd57: pitch_reload=6'd39; // G4
-   7'd25,7'd30,7'd58,7'd61: pitch_reload=6'd35; // A4
-   7'd27,7'd44: pitch_reload=6'd31; // B4
-   7'd29: pitch_reload=6'd33; // A#4
-   7'd35: pitch_reload=6'd17; // A5
-   7'd37,7'd52,7'd68: pitch_reload=6'd22; // F5
-   7'd43,7'd63: pitch_reload=6'd26; // D5
-   7'd51,7'd67: pitch_reload=6'd20; // F#5
-   7'd53,7'd69: pitch_reload=6'd24; // D#5
-   7'd73,7'd75,7'd76: pitch_reload=6'd14; // C6
-   default: begin end
-  endcase
- end
+ wire [5:0] reload=pitch_reload;
  assign playing=enable && |reload;
  always @(posedge clk) begin
-  if(!rst_n) begin position<=0;elapsed<=0;counter<=0;tone<=0;end
+  if(!rst_n) begin position<=0;counter<=0;tone<=0;end
   else begin
-   if(enable && frame_tick) begin
-    if(elapsed==last_frame) begin
-     elapsed<=0;position<=position==7'd79 ? 7'd0:position+1'b1;
-    end else elapsed<=elapsed+1'b1;
-   end
+   if(enable && frame_tick)
+    position<=position==10'd660 ? 10'd0:position+1'b1;
    if(!playing) begin counter<=0;tone<=0;end
    else if(line_tick) begin
     if(counter==0) begin counter<=reload;tone<=!tone;end

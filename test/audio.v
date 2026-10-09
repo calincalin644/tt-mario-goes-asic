@@ -46,7 +46,7 @@ module audio_test;
   end
   @(negedge clk);
   if(dut.jump_beep!==0) $fatal(1,"Jump beep did not end after four frames");
-  if(dut.music.position==0 && dut.music.elapsed==0) $fatal(1,"Melody did not advance under jump beep");
+  if(dut.music.position==0) $fatal(1,"Melody did not advance under jump beep");
   rst=0;repeat(4) @(negedge clk);
   if(oe!==0) $fatal(1,"Reset must release audio and flash pins");
   $display("PASS: music PWM, jump priority, idle, DIP mute, four-frame duration and reset release");
