@@ -19,7 +19,7 @@ position, picture bank and motion/status information. The compiler resolves
 physics, collisions, checkpoints and enemies offline. PSRAM is not used.
 
 The design requests one tile. The measured mapped SKY130 cell area is
-10,772.83 µm² (232 flip-flops) locally for the MIDI flash melody build. The preceding
+10,637.70 µm² (230 flip-flops) locally for the MIDI flash melody build. The preceding
 melody failed CI placement at 13,701.89 µm²; the revised RTL needs new CI validation.
 
 Mountains and background masonry fit within dry-land spans rather than crossing
@@ -162,3 +162,16 @@ allocation is listed in `docs/flash-assets.csv`. The updated uploader uses
 those physical regions without applying a second relocation. Do not mix this
 manifest with the old uploader or old rule tables. Full asset-image and updater
 changes are required together; the board has not been programmed by this work.
+
+### Eight-step maintenance bar
+
+The progress rectangle spans VGA x=256..511 and y=224..255. Eight 32-pixel
+steps use h[7:5] directly, with h[9:8]==01 selecting the rectangle. The fill
+comparison uses only progress bits 4:2; bit 5 forces full green on completion.
+Progress below 4/32 remains empty, and 31/32 displays seven of eight steps.
+Errors still turn the whole rectangle red. Packet format and host reporting
+are unchanged; two unused low progress bits disappear during synthesis.
+
+Current local mapping is 10,637.7024 um^2 with 230 flip-flops. This saves
+120.1152 um^2 versus the aligned 32-step version, or 135.1296 um^2 versus
+the original bar. Physical hardening has not been rerun for this change.

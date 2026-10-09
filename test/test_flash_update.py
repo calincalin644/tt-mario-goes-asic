@@ -36,7 +36,7 @@ def reject(call):
     raise AssertionError('must reject')
 with tempfile.TemporaryDirectory() as temp:
     path=Path(temp)/'asset.zlib'
-    for logical,length in ((0xc00000,8192),(0xe00000,256),(0x820000,4096),(0x8f0000,4096),(0xad0000,4096),(0xb10000,4096),(0x5f0000,4096)):
+    for logical,length in ((0xc00000,8192),(0xe00000,256),(0x090000,4096),(0x800000,4096),(0x830000,4096),(0x940000,4096),(0xf80000,4096)):
         physical=updater.physical(logical)
         old=b'\x00'*length;new=bytes((n*7+11)%256 for n in range(length))
         memory[physical:physical+length]=old
@@ -55,7 +55,8 @@ with tempfile.TemporaryDirectory() as temp:
         count=len(writes)
         updater.program_zlib(str(path),hashlib.sha256(compressed).hexdigest(),logical,length,hashlib.sha256(new).hexdigest())
         assert len(writes)==count # safe resume skips already complete sectors
-    for address in (0x400000,0x940000,0x080000,0x110000,0x1b0000,0x200000,0x2e0000,0xff0000):
+    for address in (0x400000,0x080000,0x110000,0x1b0000,0x200000,0x2e0000,0x5f0000,0x820000,0xad0000,0xb10000,0xff0000):
+        assert not updater.allowed(address,4096,writing=True)
         reject(lambda:updater.program_zlib(str(path),hashlib.sha256(compressed).hexdigest(),address,4096,'wrong'))
     memory[0]=0
     count=len(writes)
@@ -68,4 +69,4 @@ with tempfile.TemporaryDirectory() as temp:
     assert len(writes)==count
     assert any(event[0]=='error' for event in events)
     assert all(address>>16 not in (0x08,0x11,0x1b,0x20,0x2e,0x5f,0x82,0xad,0xb1,0xff) for _,address in writes)
-print('PASS: old-hash guard, unowned-tail guard, NOR erase/rewrite, readback, relocation and idempotent resume')
+print('PASS: old-hash guard, unowned-tail guard, NOR erase/rewrite, readback, physical addressing and idempotent resume')

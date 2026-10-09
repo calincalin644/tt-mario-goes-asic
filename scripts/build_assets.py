@@ -184,6 +184,7 @@ def build():
     graphics[0x3c000:0x3c000+len(score)]=score
     (ROOT/'build/graphics.bin').write_bytes(graphics)
     build_rules()
+    (ROOT/'build/entry-pointers.hex').write_text(''.join(f'{physical(base)>>6:05x}\n' for base in RULE_BASES))
     manifest=[]
     # Pictures use physical banks; split logical rules into physically relocated pages.
     pages=[]

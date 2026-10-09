@@ -31,9 +31,9 @@ module progress_test;
    for(x=0;x<640;x=x+1) begin
     @(negedge clk);rgb={video[0],video[4],video[1],video[5],video[2],video[6]};
     expected=6'b000001;
-    if(x>=64 && x<576) begin
+    if(x>=256 && x<512) begin
      if(word[7:6]==3) expected=6'b110000;
-     else if((x-64)/16<word[5:0]) expected=word[5] ? 6'b001100:6'b001111;
+     else if((word[5] || (x-256)/32<word[4:2])) expected=word[5] ? 6'b001100:6'b001111;
      else expected=6'b010101;
     end
     if(rgb!==expected) $fatal(1,"bar pixel x=%d word=%h got=%h expected=%h",x,word,rgb,expected);
@@ -44,7 +44,8 @@ module progress_test;
   repeat(3) @(negedge clk);rst=1;repeat(10) @(negedge clk);
   rst=0;repeat(10) @(negedge clk);
   send(8'h00);check(8'h00);
-  send(8'h01);check(8'h01);
+  send(8'h01);check(8'h01); // sub-step progress remains empty
+  send(8'h04);check(8'h04); // first of eight visible steps
   send(8'h50);check(8'h50);
   // Full VGA frame while reset remains asserted and the RP owns flash.
   while(!(dut.h==0 && dut.v==0)) @(negedge clk);
@@ -54,6 +55,12 @@ module progress_test;
    @(negedge clk);
    if(video[7]!==!(x>=656 && x<752) || video[3]!==!(y>=490 && y<492)) $fatal(1,"sync during held reset");
    rgb={video[0],video[4],video[1],video[5],video[2],video[6]};
+   if(x<640 && y<480) begin
+    expected=6'b000001;
+    if(x>=256 && x<512 && y>=224 && y<256)
+     expected=x<384 ? 6'b001111:6'b010101;
+    if(rgb!==expected) $fatal(1,"rectangle boundary x=%0d y=%0d",x,y);
+   end
    if(x<640 && y<480) $fwrite(f,"%d %d %d\n",rgb[5:4]*85,rgb[3:2]*85,rgb[1:0]*85);
    else if(rgb!==0) $fatal(1,"blanking");
   end
@@ -66,14 +73,14 @@ module progress_test;
   if(dut.upload_status!==saved) $fatal(1,"ordinary flash traffic altered progress");
   arm;nibble(4'hf);if(dut.upload_status!==saved) $fatal(1,"partial packet changed progress");
   send(8'h90);check(8'h90); // framing recovers; write/readback yellow
-  send(8'h5f);check(8'h5f); // 31/32 full until checks finish
+  send(8'h5f);check(8'h5f); // 7/8 full until checks finish
   send(8'h60);check(8'h60); // complete, green
   send(8'hcb);check(8'hcb); // partial error, red
   send(8'hc0);check(8'hc0); // zero-progress error turns the whole bar red
   rst=1;repeat(1000) @(negedge clk);
   if(dut.upload_status!==0 || oe===0) $fatal(1,"game did not regain bus after release");
   if(dut.player!==41'h1000001eb00) $fatal(1,"game state not restarted");
-  $display("PASS: integrated 0/1/16/31/32-step bars, simple cyan/green/red colors, visible zero-progress errors, framed quad updates, SPI isolation, held-reset VGA, released BIDIR and game restart");$finish;
+  $display("PASS: integrated eight-step bar, quantization and completion, simple cyan/green/red colors, visible zero-progress errors, framed quad updates, SPI isolation, held-reset VGA, released BIDIR and game restart");$finish;
  end
  initial begin #1000000000;$fatal(1,"timeout");end
 endmodule

@@ -8,7 +8,7 @@ module core_controls_test;
  flash_model flash(out[0],out[3],{1'b1,out[6:0]},oe,pins);
  reg [40:0] saved;
  integer level,steps;
- reg [17:0] expected_pointer;
+ reg [17:0] entry_pointer[0:7];
  task packet(input [2:0] buttons);
   reg [11:0] bits;integer i;
   begin
@@ -28,6 +28,7 @@ module core_controls_test;
   end
  endtask
  initial begin
+  $readmemh("build/entry-pointers.hex",entry_pointer);
   repeat(3) @(negedge clk);rst=1;
   packet(4);game_update;
   if(dut.jump_beep!==1 || dut.action!==3'b100 || dut.player[14:10]!=24) $fatal(1,"gamepad jump edge or table response");
@@ -53,8 +54,7 @@ module core_controls_test;
   packet(2);
   for(level=0;level<8;level=level+1) begin
    ui[3:0]={1'b1,level[2:0]};repeat(10) @(negedge clk);game_update;
-   expected_pointer=level<5 ? 18'h20000+level*18'h1000:level==5 ? 18'h28000:level==6 ? 18'h2c000:18'h14000;
-   if(dut.player[40:23]!==expected_pointer || dut.player[22:15]!=3 || dut.player[14:10]!=26)
+   if(dut.player[40:23]!==entry_pointer[level] || dut.player[22:15]!=3 || dut.player[14:10]!=26)
     $fatal(1,"DIP selection %0d failed: %h",level,dut.player);
    saved=dut.player;game_update;if(dut.player!==saved) $fatal(1,"DIP load not held");
    ui[3]=0;repeat(10) @(negedge clk);game_update;
@@ -66,9 +66,9 @@ module core_controls_test;
   dut.h=0;dut.v=480;dut.frame_phase=3;
   repeat(660) @(negedge clk);ui[3:0]=4'he;
   repeat(48) @(negedge clk);
-  if(dut.player[40:23]!=18'h28000) $fatal(1,"DIP change corrupted in-flight lookup");
+  if(dut.player[40:23]!=entry_pointer[5]) $fatal(1,"DIP change corrupted in-flight lookup");
   game_update;
-  if(dut.player[40:23]!=18'h2c000) $fatal(1,"DIP change missed next lookup");
+  if(dut.player[40:23]!=entry_pointer[6]) $fatal(1,"DIP change missed next lookup");
   $display("PASS: real serial gamepad, initial-press beep, silent held-jump repeat on landing, ena pause, all eight DIP selections, load hold and release");$finish;
  end
 endmodule

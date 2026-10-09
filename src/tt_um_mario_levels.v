@@ -40,11 +40,12 @@ module tt_um_mario_levels(input wire [7:0] ui_in,output wire [7:0] uo_out,
    end
   end
  end
- wire [5:0] bar_column=h[9:4]-6'd4;
+ // Binary-aligned 256x32 rectangle; eight 32-pixel progress steps.
+ wire [2:0] bar_column=h[7:5];
  reg bar_d,fill_d;
  always @(posedge clk) begin
-  bar_d<=!bar_column[5] && v[9:5]==7;
-  fill_d<=bar_column<upload_status[5:0];
+  bar_d<=h[9:8]==2'b01 && v[9:5]==7;
+  fill_d<=upload_status[5] || bar_column<upload_status[4:2];
  end
  wire left,right,jump;
  wire [3:0] level_request;
