@@ -221,99 +221,31 @@ module mario_stream_flash(input wire clk,rst_n,input wire [9:0] h,
  end
 endmodule
 // BEGIN GENERATED MELODY
-// Generated from assets/melody.json: 661 frames, 82 repeated-value runs.
+// 80 fixed steps: alternating 7/8 frames, final frame silent.
 module mario_melody(input wire clk,rst_n,enable,line_tick,frame_tick,
  output reg tone,output wire playing);
  reg [6:0] position;
- reg [4:0] elapsed;
+ reg [2:0] elapsed;
  reg [5:0] counter;
- reg [5:0] reload;
- reg [4:0] last_frame;
+ reg [5:0] pitch_reload;
+ wire [2:0] last_frame={2'b11,position[0]};
+ wire [5:0] reload=elapsed==last_frame ? 6'd0:pitch_reload;
  always @* begin
-  reload=0;last_frame=0;
+  pitch_reload=0;
   case(position)
-   7'd0: begin reload=6'd23;last_frame=5'd6;end
-   7'd1: begin reload=6'd0;last_frame=5'd0;end
-   7'd2: begin reload=6'd23;last_frame=5'd7;end
-   7'd3: begin reload=6'd0;last_frame=5'd8;end
-   7'd4: begin reload=6'd23;last_frame=5'd6;end
-   7'd5: begin reload=6'd0;last_frame=5'd8;end
-   7'd6: begin reload=6'd29;last_frame=5'd7;end
-   7'd7: begin reload=6'd0;last_frame=5'd0;end
-   7'd8: begin reload=6'd23;last_frame=5'd6;end
-   7'd9: begin reload=6'd0;last_frame=5'd8;end
-   7'd10: begin reload=6'd19;last_frame=5'd6;end
-   7'd11: begin reload=6'd0;last_frame=5'd25;end
-   7'd12: begin reload=6'd39;last_frame=5'd14;end
-   7'd13: begin reload=6'd0;last_frame=5'd17;end
-   7'd14: begin reload=6'd29;last_frame=5'd14;end
-   7'd15: begin reload=6'd0;last_frame=5'd9;end
-   7'd16: begin reload=6'd39;last_frame=5'd14;end
-   7'd17: begin reload=6'd0;last_frame=5'd9;end
-   7'd18: begin reload=6'd47;last_frame=5'd14;end
-   7'd19: begin reload=6'd0;last_frame=5'd8;end
-   7'd20: begin reload=6'd35;last_frame=5'd14;end
-   7'd21: begin reload=6'd0;last_frame=5'd1;end
-   7'd22: begin reload=6'd31;last_frame=5'd14;end
-   7'd23: begin reload=6'd0;last_frame=5'd0;end
-   7'd24: begin reload=6'd33;last_frame=5'd7;end
-   7'd25: begin reload=6'd0;last_frame=5'd0;end
-   7'd26: begin reload=6'd35;last_frame=5'd14;end
-   7'd27: begin reload=6'd0;last_frame=5'd0;end
-   7'd28: begin reload=6'd39;last_frame=5'd9;end
-   7'd29: begin reload=6'd0;last_frame=5'd0;end
-   7'd30: begin reload=6'd23;last_frame=5'd9;end
-   7'd31: begin reload=6'd0;last_frame=5'd0;end
-   7'd32: begin reload=6'd19;last_frame=5'd9;end
-   7'd33: begin reload=6'd0;last_frame=5'd0;end
-   7'd34: begin reload=6'd17;last_frame=5'd14;end
-   7'd35: begin reload=6'd0;last_frame=5'd1;end
-   7'd36: begin reload=6'd22;last_frame=5'd6;end
-   7'd37: begin reload=6'd0;last_frame=5'd0;end
-   7'd38: begin reload=6'd19;last_frame=5'd6;end
-   7'd39: begin reload=6'd0;last_frame=5'd9;end
-   7'd40: begin reload=6'd23;last_frame=5'd13;end
-   7'd41: begin reload=6'd0;last_frame=5'd1;end
-   7'd42: begin reload=6'd29;last_frame=5'd6;end
-   7'd43: begin reload=6'd0;last_frame=5'd0;end
-   7'd44: begin reload=6'd26;last_frame=5'd7;end
-   7'd45: begin reload=6'd0;last_frame=5'd0;end
-   7'd46: begin reload=6'd31;last_frame=5'd13;end
-   7'd47: begin reload=6'd0;last_frame=5'd9;end
-   7'd48: begin reload=6'd29;last_frame=5'd14;end
-   7'd49: begin reload=6'd0;last_frame=5'd9;end
-   7'd50: begin reload=6'd39;last_frame=5'd14;end
-   7'd51: begin reload=6'd0;last_frame=5'd9;end
-   7'd52: begin reload=6'd47;last_frame=5'd14;end
-   7'd53: begin reload=6'd0;last_frame=5'd9;end
-   7'd54: begin reload=6'd35;last_frame=5'd14;end
-   7'd55: begin reload=6'd0;last_frame=5'd0;end
-   7'd56: begin reload=6'd31;last_frame=5'd14;end
-   7'd57: begin reload=6'd0;last_frame=5'd1;end
-   7'd58: begin reload=6'd33;last_frame=5'd6;end
-   7'd59: begin reload=6'd0;last_frame=5'd0;end
-   7'd60: begin reload=6'd35;last_frame=5'd14;end
-   7'd61: begin reload=6'd0;last_frame=5'd0;end
-   7'd62: begin reload=6'd39;last_frame=5'd9;end
-   7'd63: begin reload=6'd0;last_frame=5'd0;end
-   7'd64: begin reload=6'd23;last_frame=5'd9;end
-   7'd65: begin reload=6'd0;last_frame=5'd0;end
-   7'd66: begin reload=6'd19;last_frame=5'd9;end
-   7'd67: begin reload=6'd0;last_frame=5'd0;end
-   7'd68: begin reload=6'd17;last_frame=5'd14;end
-   7'd69: begin reload=6'd0;last_frame=5'd1;end
-   7'd70: begin reload=6'd22;last_frame=5'd6;end
-   7'd71: begin reload=6'd0;last_frame=5'd0;end
-   7'd72: begin reload=6'd19;last_frame=5'd7;end
-   7'd73: begin reload=6'd0;last_frame=5'd8;end
-   7'd74: begin reload=6'd23;last_frame=5'd14;end
-   7'd75: begin reload=6'd0;last_frame=5'd0;end
-   7'd76: begin reload=6'd29;last_frame=5'd7;end
-   7'd77: begin reload=6'd0;last_frame=5'd0;end
-   7'd78: begin reload=6'd26;last_frame=5'd6;end
-   7'd79: begin reload=6'd0;last_frame=5'd0;end
-   7'd80: begin reload=6'd31;last_frame=5'd14;end
-   7'd81: begin reload=6'd0;last_frame=5'd9;end
+   7'd0,7'd1,7'd3,7'd6,7'd22,7'd33,7'd40,7'd55,7'd71: pitch_reload=6'd23; // E5
+   7'd5,7'd16,7'd42,7'd59,7'd62: pitch_reload=6'd29; // C5
+   7'd8,7'd34,7'd38,7'd50,7'd66: pitch_reload=6'd19; // G5
+   7'd12,7'd19,7'd32,7'd57: pitch_reload=6'd39; // G4
+   7'd25,7'd30,7'd58,7'd61: pitch_reload=6'd35; // A4
+   7'd27,7'd44: pitch_reload=6'd31; // B4
+   7'd29: pitch_reload=6'd33; // A#4
+   7'd35: pitch_reload=6'd17; // A5
+   7'd37,7'd52,7'd68: pitch_reload=6'd22; // F5
+   7'd43,7'd63: pitch_reload=6'd26; // D5
+   7'd51,7'd67: pitch_reload=6'd20; // F#5
+   7'd53,7'd69: pitch_reload=6'd24; // D#5
+   7'd73,7'd75,7'd76: pitch_reload=6'd14; // C6
    default: begin end
   endcase
  end
@@ -323,7 +255,7 @@ module mario_melody(input wire clk,rst_n,enable,line_tick,frame_tick,
   else begin
    if(enable && frame_tick) begin
     if(elapsed==last_frame) begin
-     elapsed<=0;position<=position==7'd81 ? 7'd0:position+1'b1;
+     elapsed<=0;position<=position==7'd79 ? 7'd0:position+1'b1;
     end else elapsed<=elapsed+1'b1;
    end
    if(!playing) begin counter<=0;tone<=0;end

@@ -19,7 +19,8 @@ position, picture bank and motion/status information. The compiler resolves
 physics, collisions, checkpoints and enemies offline. PSRAM is not used.
 
 The design requests one tile. The measured mapped SKY130 cell area is
-11,199.49 µm² (239 flip-flops) for the melody build; physical fit and timing require the shuttle's GDS/precheck results.
+11,093.14 µm² (232 flip-flops) locally for the fixed-step melody build. The preceding
+melody failed CI placement at 13,701.89 µm²; the revised RTL needs new CI validation.
 
 Mountains and background masonry fit within dry-land spans rather than crossing
 water gaps. Trees and the finish gate also have dry foundations. These decorations
@@ -89,10 +90,11 @@ UO3 = VSYNC and UO7 = HSYNC. Sync pulses are active low.
 
 ## Jump audio
 
-A single-voice melody loops every 661 VGA frames (about 11.02 seconds), using
-hardwired notes and rests from the supplied MIDI. A 31.5 kHz line enable drives
+A single-voice melody loops every 600 VGA frames (10 seconds), using
+the user-supplied 80-step score. A 31.5 kHz line enable drives
 the pitch divider; 60 Hz frame ticks drive the sequence. No external flash is
-used for sound. Consecutive identical slots are compacted into 82 runs.
+used for sound. Steps alternate seven/eight frames for 120 BPM; the final
+frame of each step is silent to separate repeated notes. No decay envelope is used.
 
 A new jump-button press produces the existing roughly 984 Hz beep for four
 frames (66.7 ms), temporarily replacing the melody. The music timeline keeps

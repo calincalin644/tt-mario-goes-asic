@@ -57,18 +57,18 @@ Only `src/tt_um_mario_levels.v` and `src/controls.v` are synthesis sources.
 The cloned SKY130 shuttle's GDS, precheck, gate-level and documentation workflows
 are retained. Push the prepared repository to run those workflows.
 
-The melody build maps locally to **11,199.49 µm²** and **239 flip-flops**:
-70.00% of the nominal 16,000 µm² budget, just below the 11,200 µm² target.
-The jump-only baseline was 9,656.76 µm²; the added melody costs 1,542.73 µm²
-in this mapping. These are pre-placement estimates, not final utilization.
-The previous CI hardening predates the melody and must be rerun for this RTL.
+The fixed-step melody maps locally to **11,093.14 µm²** and **232 flip-flops**,
+106.35 µm² below the preceding melody implementation. This is a pre-placement
+estimate. The preceding melody failed CI placement at 13,701.89 µm²; the
+revised RTL still requires hosted synthesis and hardening. Local mapping does
+not establish compliance with the 11,200 µm² target in the shuttle flow.
 
 ## Optional FPGA build
 
 `make fpga` uses Yosys, nextpnr-ice40 and IceStorm with the FabricFox wrapper and
-pin constraints in `fpga/`. This wrapper is not an ASIC source. The source design
+pin constraints in `fpga/`. This wrapper is not an ASIC source. The previous MIDI melody build
 uses 703/5,280 FPGA logic cells, one block RAM for the hardwired melody table,
-and no DSP or PLL; the build routes at 36.86 MHz (25.2 MHz required). These are FPGA results, not ASIC resource counts.
+and no DSP or PLL; the build routes at 36.86 MHz (25.2 MHz required). These are historical FPGA results; the fixed-step version has not been rebuilt for the board.
 
 For a local mapped-area estimate, run `make area LIBERTY=/path/to/sky130.lib`.
 No workstation-specific paths or tools are included.
@@ -141,12 +141,17 @@ and characters belong to their respective owners; this is an independent project
 
 ## Melody and jump beep
 
-The supplied MIDI's opening ten bars loop during gameplay as one voice. The
-661-frame sequence uses VGA frame ticks for timing and a VGA-line divider for
-pitch. Consecutive identical frame slots compile into 82 hardwired runs;
-`assets/melody.json` and `scripts/build_melody.py` regenerate the RTL with
-`make melody`. There are no sound reads from external flash. ASIC synthesis
-maps the table to logic; the FPGA mapper uses one block RAM.
+The user-supplied 80-step score loops in 600 VGA frames (10 seconds).
+Steps alternate seven/eight frames for 120 BPM, with a one-frame silent gap
+at the end of every step. VGA line ticks drive integer pitch dividers.
+`assets/melody.json` and `scripts/build_melody.py` regenerate RTL with
+`make melody`. There are no external-flash sound reads or decay envelope.
+The supplied E5 in the second phrase is retained exactly.
+
+Render two loops of the hardware-equivalent audible waveform with:
+`python3 scripts/render_melody.py build/mario-fixed-step.wav` (requires NumPy).
+The WAV models the divider and rests, excluding the ultrasonic PWM carrier
+and the PMOD/speaker analog response.
 
 A fresh jump press overrides the melody with the existing 66.7 ms beep. The
 melody keeps advancing underneath and resumes at its current position. Held
