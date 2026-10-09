@@ -26,7 +26,7 @@ module stream_test;
   end
   if(player[3:1]!=4) $fatal(1,"final victory missing");
   advance(0);if(player[3:1]!=4) $fatal(1,"win not latched");
-  advance(4);if(player!=41'h1000001eb00) $fatal(1,"restart");
+  advance(4);if(player!=route[0][40:0]) $fatal(1,"restart");
   $display("PASS: continuous scrolling-world playthrough and restart using actual SPI transactions and flash table");$finish;
  end
  initial begin #100000000;$fatal(1,"timeout");end

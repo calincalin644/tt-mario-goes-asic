@@ -60,7 +60,7 @@ module motion_test;
   $readmemh("build/route.hex",route);
   repeat(3) @(negedge clk);rst=1;repeat(2) @(negedge clk);
   for(i=0;i<`ROUTE_COUNT;i=i+1) advance(route[i][43:41],route[i][40:0]);
-  advance(0,route[`ROUTE_COUNT-1][40:0]);advance(4,41'h1000001eb00);
+  advance(0,route[`ROUTE_COUNT-1][40:0]);advance(4,route[0][40:0]);
   directed(10,26);directed(11,26);directed(10,26); // Stop/reverse.
   directed(10,25);directed(10,24);directed(10,26); // Vertical 1/2-cell steps.
   directed(0,26);directed(1,26);directed(0,26); // Left world boundary.

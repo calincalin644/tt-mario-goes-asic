@@ -57,8 +57,8 @@ Only `src/tt_um_mario_levels.v` and `src/controls.v` are synthesis sources.
 The cloned SKY130 shuttle's GDS, precheck, gate-level and documentation workflows
 are retained. Push the prepared repository to run those workflows.
 
-The MIDI flash melody maps locally to **11,561.09 µm²** and **244 flip-flops**,
-788.26 µm² above the no-coin MIDI flash implementation. This is a pre-placement
+The MIDI flash melody maps locally to **10,772.83 µm²** and **232 flip-flops**,
+unchanged by the enemy-based coin encounters. This is a pre-placement
 estimate. The preceding melody failed CI placement at 13,701.89 µm²; the
 revised RTL still requires hosted synthesis and hardening. Local mapping does
 not establish compliance with the 11,200 µm² target in the shuttle flow.
@@ -125,7 +125,7 @@ alone does not establish that a valid VGA signal is reaching the converter.
 
 ## Repository contents and limitations
 
-The flash assets occupy 13,369,600 bytes; the dedicated-chip image is 16 MiB
+The flash assets occupy 15,532,288 bytes; the dedicated-chip image is 16 MiB
 including erased space. Keep binaries, manifests/checksums and any bitstreams as
 release artifacts rather than committing the generated `build/` directory.
 
@@ -189,7 +189,7 @@ and level changes do not participate in the music address.
 varying camera offsets and picture banks, then checks restored sprite reads
 and pitch retention. The previous deployed FPGA/flash pair remains unchanged;
 this RTL requires the updated graphics asset and a rebuilt FPGA image together.
-Current local synthesis: 11,561.0920 um^2, 244 flip-flops; hosted hardening
+Current local synthesis: 10,772.8320 um^2, 232 flip-flops; hosted hardening
 has not been rerun, so the earlier placement failure is not yet resolved.
 
 ### Tortoise stomp feedback
@@ -203,33 +203,44 @@ This adds no ASIC RTL or registers. The offline compiler reuses the dead
 enemy's animation field as a three-update countdown. Two extra 256 KiB
 pictures supply the shell pose: level 7 at 0x4C0000–0x4FFFFF (bank 19), and
 level 8 at 0x940000–0x97FFFF (bank 37). Existing game tables retain their sizes.
-The manifest now allocates 13,369,600 bytes; 3,407,616 bytes remain outside
+The manifest now allocates 15,532,288 bytes; 1,244,928 bytes remain outside
 assets, including reserved/shared areas that must not be overwritten blindly.
 
 Regenerate with `make assets` and `make images`. Deploy the matching rule
 assets and shell pictures together. The connected FPGA/flash have not been
 updated by this asset change.
 
-### Three rotating collectible coins (not yet deployed)
 
-Each checkpoint section has coins at local cells 7, 9, and 11, spanning
-logical pixel rows 192–199. They are placed on clear background outside every
-enemy patrol. Mario collects each coin independently on contact; it disappears
-and remains absent until death, restart, level load, or a checkpoint-section
-change. Returning to a previous section resets its coins, matching the local
-enemy-encounter reset policy. There is no score, sound effect, or reward.
+### Coin encounters without new ASIC logic
 
-A four-phase full/half/edge/half-width overlay rotates around a vertical axis,
-advancing at 15 Hz (one cycle per 267 ms). Mario is rendered in front of coins.
-The compiler supplies three contact bits in result bits 43:41, formerly unused.
-The flash transfer is still 11 nibbles; records remain eight bytes and all
-picture and state-bank allocations are unchanged. Hardware keeps a three-bit
-collection mask, checkpoint tag, and rotation phase instead of duplicating the
-offline state graph for every collection pattern.
+One rotating coin is present in levels 1–5 and 8; levels 6 and 7 retain all
+four mushrooms and all four tortoises respectively. Coins use otherwise empty
+checkpoint encounters. Coins in levels 1–4 are at cell 7, feet 25; level 5's
+coin is above a late platform at cell 219, feet 22; level 8's is at cell 71,
+feet 25. They do not overlap enemy patrols.
 
-This changes the ASIC RTL and requires matched rule tables and a rebuilt FPGA
-image. Local synthesis measures 11,561.0880 um^2 and 244 flip-flops: +788.2560
-um^2 versus no coins, and 361.0880 um^2 above the 11,200 um^2 target. This
-experimental feature is NOT area-qualified; hosted hardening is still pending.
-Tests cover independent collection/reset behavior, all 32 checkpoint routes,
-flash records, enemy separation, and rendered coin pixels.
+Coins alternate a face and an edge picture while Mario is within three cells,
+using the existing 15 Hz encounter animation. Contact marks the encounter
+completed immediately, selecting the clean background with no damage, bounce,
+score, or collection beep. The coin stays absent within that encounter;
+death/restart or leaving and re-entering its checkpoint section resets it,
+just like the enemy mechanism. There is no separate collection register,
+coin overlay, checkpoint tag, or rotation circuit in the ASIC.
+
+The previous three-coin overlay experiment has been removed. Current RTL is
+identical to the pre-coin MIDI-flash implementation: 10,772.8320 um^2 in local
+mapping, 232 flip-flops. Hosted hardening remains unverified.
+
+Ten new 256 KiB coin pictures serve levels 1–5. Level 8 uses its existing
+animation pictures. Rule allocations are trimmed to 64 KiB page boundaries;
+physical rule pointers are rebuilt to fit pages around the pictures. Startup
+0x800000 and the selector at 0x83FFC0 remain fixed. All reserved blocks and
+the legacy graphics region 0x400000–0x4400FF remain untouched in the image.
+
+The complete asset allocation is 15,532,288 bytes, leaving 1,244,928 bytes
+outside assets, including reserved/shared regions. The manifest has 98 assets
+and explicitly physical addresses, including 61 rule-page files. The physical
+allocation is listed in `docs/flash-assets.csv`. The updated uploader uses
+those physical regions without applying a second relocation. Do not mix this
+manifest with the old uploader or old rule tables. Full asset-image and updater
+changes are required together; the board has not been programmed by this work.

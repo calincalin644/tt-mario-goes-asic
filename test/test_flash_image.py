@@ -27,3 +27,9 @@ sys.path.insert(0,str(root/'scripts'))
 from world import physical
 assert physical(0x800000)==0x800000 and physical(0x83ffc0)==0x83ffc0
 assert raw[0x400000:0x440100]==b'\xff'*0x40100, 'legacy graphics region reused'
+
+import ast
+module=ast.parse((root/'scripts/levels_flash.py').read_text())
+regions=next(ast.literal_eval(n.value) for n in module.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='REGIONS' for t in n.targets))
+for a in manifest:
+    assert any(lo<=a['address'] and a['address']+a['size']<=hi for lo,hi in regions), a['file']
