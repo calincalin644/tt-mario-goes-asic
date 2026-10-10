@@ -210,12 +210,14 @@ module mario_stream_flash(input wire clk,rst_n,input wire [9:0] h,
      end
     end else if(!sck) begin
      sck<=1;
+     // Setup samples are disposable: eight payload nibbles replace the
+     // entire row before scanout. Keep the count decode off this enable.
+     if(mode==SPRITE) begin
+      sprite<={sprite[27:0],quad_in};
+      if(music_slot && count==21) music_pitch<={sprite[1:0],quad_in};
+     end
      if(count>=20) begin
       case(mode)
-       SPRITE:begin
-        sprite<={sprite[27:0],quad_in};
-        if(music_slot && count==21) music_pitch<={sprite[1:0],quad_in};
-       end
        GAME:player<={player[36:0],quad_in};
        BG:prefetch<=quad_in;
       endcase
